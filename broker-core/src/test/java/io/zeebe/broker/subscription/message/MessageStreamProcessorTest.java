@@ -22,6 +22,7 @@ import static io.zeebe.test.util.TestUtil.waitUntil;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.timeout;
@@ -61,7 +62,7 @@ public class MessageStreamProcessorTest {
     MockitoAnnotations.initMocks(this);
 
     when(mockSubscriptionCommandSender.openWorkflowInstanceSubscription(
-            anyLong(), anyLong(), any()))
+            anyLong(), anyLong(), any(), anyBoolean()))
         .thenReturn(true);
 
     when(mockSubscriptionCommandSender.correlateWorkflowInstanceSubscription(
@@ -108,7 +109,8 @@ public class MessageStreamProcessorTest {
         .openWorkflowInstanceSubscription(
             eq(subscription.getWorkflowInstanceKey()),
             eq(subscription.getElementInstanceKey()),
-            any());
+            any(),
+            anyBoolean());
   }
 
   @Test
@@ -172,7 +174,7 @@ public class MessageStreamProcessorTest {
   }
 
   @Test
-  public void shouldRejectDuplicatedCorrelateMessageSubscription() {
+  public void shouldRejectCorrelateIfMessageSubscriptionClosed() {
     // given
     final MessageSubscriptionRecord subscription = messageSubscription();
     final MessageRecord message = message();
@@ -187,7 +189,7 @@ public class MessageStreamProcessorTest {
     waitUntil(() -> streamProcessor.isBlocked());
 
     // when
-    rule.writeCommand(MessageSubscriptionIntent.CORRELATE, subscription);
+    rule.writeCommand(MessageSubscriptionIntent.CLOSE, subscription);
     rule.writeCommand(MessageSubscriptionIntent.CORRELATE, subscription);
 
     streamProcessor.unblock();
@@ -198,7 +200,7 @@ public class MessageStreamProcessorTest {
 
     assertThat(rejection.getMetadata().getIntent()).isEqualTo(MessageSubscriptionIntent.CORRELATE);
     assertThat(BufferUtil.bufferAsString(rejection.getMetadata().getRejectionReason()))
-        .isEqualTo("subscription is already correlated");
+        .isEqualTo("subscription does not exist");
   }
 
   @Test
@@ -236,13 +238,96 @@ public class MessageStreamProcessorTest {
             any(DirectBuffer.class));
   }
 
+  @Test
+  public void shouldBeCorrelatableAgainIfShouldNotCloseOnCorrelate() {
+    // given
+    final MessageSubscriptionRecord subscription = messageSubscription().setCloseOnCorrelate(false);
+
+    streamProcessor.blockAfterMessageSubscriptionEvent(
+        m -> m.getMetadata().getIntent() == MessageSubscriptionIntent.OPENED);
+
+    rule.writeCommand(MessageSubscriptionIntent.OPEN, subscription);
+
+    waitUntil(() -> streamProcessor.isBlocked());
+
+    // when
+    rule.writeCommand(MessageSubscriptionIntent.CORRELATE, subscription);
+    rule.writeCommand(MessageSubscriptionIntent.CORRELATE, subscription);
+
+    streamProcessor.unblock();
+
+    // then
+    assertThat(
+            rule.events()
+                .onlyMessageSubscriptionRecords()
+                .withIntent(MessageSubscriptionIntent.CORRELATED)
+                .limit(2))
+        .hasSize(2);
+  }
+
+  @Test
+  public void shouldNotCorrelateNewMessagesIfSubscriptionNotCorrelatable() {
+    // given
+    final MessageSubscriptionRecord subscription = messageSubscription();
+    final MessageRecord message = message();
+
+    streamProcessor.blockAfterMessageEvent(
+        m -> m.getMetadata().getIntent() == MessageIntent.PUBLISHED);
+
+    rule.writeCommand(MessageSubscriptionIntent.OPEN, subscription);
+    rule.writeCommand(MessageIntent.PUBLISH, message);
+
+    waitUntil(() -> streamProcessor.isBlocked());
+
+    // when
+    rule.writeCommand(MessageIntent.PUBLISH, message);
+    streamProcessor.unblock();
+
+    // then
+    verify(mockSubscriptionCommandSender, timeout(5_000).times(1))
+        .correlateWorkflowInstanceSubscription(
+            subscription.getWorkflowInstanceKey(),
+            subscription.getElementInstanceKey(),
+            subscription.getMessageName(),
+            message.getPayload());
+  }
+
+  @Test
+  public void shouldCorrelateNewMessagesIfSubscriptionIsReusable() {
+    // given
+    final MessageSubscriptionRecord subscription = messageSubscription();
+    final MessageRecord message = message();
+
+    subscription.setCloseOnCorrelate(false);
+    streamProcessor.blockAfterMessageEvent(
+        m -> m.getMetadata().getIntent() == MessageIntent.PUBLISHED);
+
+    rule.writeCommand(MessageSubscriptionIntent.OPEN, subscription);
+    rule.writeCommand(MessageIntent.PUBLISH, message);
+
+    waitUntil(() -> streamProcessor.isBlocked());
+
+    // when
+    rule.writeCommand(MessageIntent.PUBLISH, message);
+    streamProcessor.unblock();
+
+    // then
+    verify(mockSubscriptionCommandSender, timeout(5_000).times(2))
+        .correlateWorkflowInstanceSubscription(
+            subscription.getWorkflowInstanceKey(),
+            subscription.getElementInstanceKey(),
+            subscription.getMessageName(),
+            message.getPayload());
+  }
+
   private MessageSubscriptionRecord messageSubscription() {
     final MessageSubscriptionRecord subscription = new MessageSubscriptionRecord();
     subscription
         .setWorkflowInstanceKey(1L)
         .setElementInstanceKey(2L)
         .setMessageName(wrapString("order canceled"))
-        .setCorrelationKey(wrapString("order-123"));
+        .setCorrelationKey(wrapString("order-123"))
+        .setCloseOnCorrelate(true);
 
     return subscription;
   }

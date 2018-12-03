@@ -151,6 +151,7 @@ public class CatchEventOutput {
     final long elementInstanceKey = context.getRecord().getKey();
     final DirectBuffer messageName = cloneBuffer(message.getMessageName());
     final DirectBuffer correlationKey = cloneBuffer(extractedKey);
+    final boolean closeOnCorrelate = true; // todo (npepinpe): will updated in #1592
 
     subscription.setMessageName(messageName);
     subscription.setElementInstanceKey(elementInstanceKey);
@@ -158,6 +159,7 @@ public class CatchEventOutput {
     subscription.setWorkflowInstanceKey(workflowInstanceKey);
     subscription.setCorrelationKey(correlationKey);
     subscription.setHandlerNodeId(handler.getId());
+    subscription.setCloseOnCorrelate(closeOnCorrelate);
     state.getWorkflowInstanceSubscriptionState().put(subscription);
 
     context
@@ -165,7 +167,11 @@ public class CatchEventOutput {
         .add(
             () ->
                 sendOpenMessageSubscription(
-                    workflowInstanceKey, elementInstanceKey, messageName, correlationKey));
+                    workflowInstanceKey,
+                    elementInstanceKey,
+                    messageName,
+                    correlationKey,
+                    closeOnCorrelate));
   }
 
   public void unsubscribeFromMessageEvents(long elementInstanceKey, BpmnStepContext<?> context) {
@@ -242,8 +248,9 @@ public class CatchEventOutput {
       long workflowInstanceKey,
       long elementInstanceKey,
       DirectBuffer messageName,
-      DirectBuffer correlationKey) {
+      DirectBuffer correlationKey,
+      boolean closeOnCorrelate) {
     return subscriptionCommandSender.openMessageSubscription(
-        workflowInstanceKey, elementInstanceKey, messageName, correlationKey);
+        workflowInstanceKey, elementInstanceKey, messageName, correlationKey, closeOnCorrelate);
   }
 }

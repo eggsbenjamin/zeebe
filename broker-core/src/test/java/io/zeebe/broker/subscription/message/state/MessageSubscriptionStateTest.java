@@ -344,6 +344,24 @@ public class MessageSubscriptionStateTest {
     assertThat(keys).hasSize(1).contains(1L);
   }
 
+  @Test
+  public void shouldUpdateToCorrelatableState() {
+    // given
+    final MessageSubscription subscription = subscription("message", "key", 1L);
+
+    // when
+    state.put(subscription);
+    state.updateToCorrelatingState(subscription, wrapString("payload"), 1L);
+    state.updateToCorrelatableState(subscription);
+
+    // then
+    final List<Long> keys = new ArrayList<>();
+    state.visitSubscriptionBefore(2L, s -> keys.add(s.getElementInstanceKey()));
+    final MessageSubscription updated = state.get(1L, wrapString("message"));
+    assertThat(updated.getCommandSentTime()).isZero();
+    assertThat(keys).isEmpty();
+  }
+
   private MessageSubscription subscriptionWithElementInstanceKey(long elementInstanceKey) {
     return subscription("messageName", "correlationKey", elementInstanceKey);
   }
@@ -351,6 +369,6 @@ public class MessageSubscriptionStateTest {
   private MessageSubscription subscription(
       String name, String correlationKey, long elementInstanceKey) {
     return new MessageSubscription(
-        1L, elementInstanceKey, wrapString(name), wrapString(correlationKey));
+        1L, elementInstanceKey, wrapString(name), wrapString(correlationKey), true);
   }
 }

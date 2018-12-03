@@ -103,7 +103,7 @@ public class MessageCatchElementTest {
         WorkflowInstanceIntent.ELEMENT_COMPLETED
       },
       {"receive task", RECEIVE_TASK_WORKFLOW, WorkflowInstanceIntent.ELEMENT_COMPLETED},
-      {"boundary event", BOUNDARY_EVENT_WORKFLOW, WorkflowInstanceIntent.ELEMENT_TERMINATED}
+      {"int boundary event", BOUNDARY_EVENT_WORKFLOW, WorkflowInstanceIntent.ELEMENT_TERMINATED}
     };
   }
 
@@ -220,7 +220,7 @@ public class MessageCatchElementTest {
 
   @Test
   public void shouldCloseMessageSubscription() {
-
+    // given
     final long workflowInstanceKey =
         testClient.createWorkflowInstance(PROCESS_ID, asMsgPack("orderId", "order-123"));
 
@@ -228,8 +228,10 @@ public class MessageCatchElementTest {
         testClient.receiveElementInState(
             "receive-message", WorkflowInstanceIntent.ELEMENT_ACTIVATED);
 
+    // when
     testClient.cancelWorkflowInstance(workflowInstanceKey);
 
+    // then
     final Record<MessageSubscriptionRecordValue> messageSubscription =
         RecordingExporter.messageSubscriptionRecords(MessageSubscriptionIntent.CLOSED).getFirst();
 
@@ -273,6 +275,14 @@ public class MessageCatchElementTest {
     testClient.createWorkflowInstance(PROCESS_ID, asMsgPack("orderId", "order-123"));
 
     // when
+    assertThat(
+            testClient
+                .receiveWorkflowInstanceSubscriptions()
+                .withMessageName("order canceled")
+                .withIntent(WorkflowInstanceSubscriptionIntent.OPENED)
+                .limit(1)
+                .getFirst())
+        .isNotNull();
     testClient.publishMessage("order canceled", "order-123");
 
     // then

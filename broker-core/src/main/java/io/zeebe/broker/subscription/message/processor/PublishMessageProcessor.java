@@ -103,7 +103,7 @@ public class PublishMessageProcessor implements TypedRecordProcessor<MessageReco
           final long elementInstanceKey = subscription.getElementInstanceKey();
 
           // correlate the message only once per workflow instance
-          if (!subscription.isCorrelating()
+          if (subscription.isCorrelatable()
               && !correlatedWorkflowInstances.containsLong(workflowInstanceKey)) {
 
             subscriptionState.updateToCorrelatingState(

@@ -23,6 +23,7 @@ import io.zeebe.broker.logstreams.processor.TypedRecordProcessor;
 import io.zeebe.broker.logstreams.processor.TypedResponseWriter;
 import io.zeebe.broker.logstreams.processor.TypedStreamWriter;
 import io.zeebe.broker.subscription.message.data.MessageSubscriptionRecord;
+import io.zeebe.broker.subscription.message.state.MessageSubscription;
 import io.zeebe.broker.subscription.message.state.MessageSubscriptionState;
 import io.zeebe.protocol.clientapi.RejectionType;
 import io.zeebe.protocol.intent.MessageSubscriptionIntent;
@@ -45,17 +46,22 @@ public class CorrelateMessageSubscriptionProcessor
       final Consumer<SideEffectProducer> sideEffect) {
 
     final MessageSubscriptionRecord subscriptionRecord = record.getValue();
-
-    final boolean removed =
-        subscriptionState.remove(
+    final MessageSubscription subscription =
+        subscriptionState.get(
             subscriptionRecord.getElementInstanceKey(), subscriptionRecord.getMessageName());
 
-    if (removed) {
+    if (subscription != null) {
+      if (subscription.shouldCloseOnCorrelate()) {
+        subscriptionState.remove(subscription);
+      } else {
+        subscriptionState.updateToCorrelatableState(subscription);
+      }
+
       streamWriter.appendFollowUpEvent(
           record.getKey(), MessageSubscriptionIntent.CORRELATED, subscriptionRecord);
     } else {
       streamWriter.appendRejection(
-          record, RejectionType.NOT_APPLICABLE, "subscription is already correlated");
+          record, RejectionType.NOT_APPLICABLE, "subscription does not exist");
     }
   }
 }

@@ -46,12 +46,14 @@ public class PendingWorkflowInstanceSubscriptionChecker implements Runnable {
   }
 
   private boolean sendCommand(WorkflowInstanceSubscription subscription) {
-    boolean success = false;
+    final boolean success;
 
     if (subscription.isOpening()) {
       success = sendOpenCommand(subscription);
-    } else {
+    } else if (subscription.isClosing()) {
       success = sendCloseCommand(subscription);
+    } else { // neither closing nor opening, nothing to be done
+      return true;
     }
 
     if (success) {
@@ -66,7 +68,8 @@ public class PendingWorkflowInstanceSubscriptionChecker implements Runnable {
         subscription.getWorkflowInstanceKey(),
         subscription.getElementInstanceKey(),
         subscription.getMessageName(),
-        subscription.getCorrelationKey());
+        subscription.getCorrelationKey(),
+        subscription.shouldCloseOnCorrelate());
   }
 
   private boolean sendCloseCommand(WorkflowInstanceSubscription subscription) {

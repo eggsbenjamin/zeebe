@@ -360,7 +360,8 @@ public class WorkflowInstanceStreamProcessorTest {
             catchEvent.getValue().getWorkflowInstanceKey(),
             catchEvent.getKey(),
             wrapString("order canceled"),
-            wrapString("order-123"));
+            wrapString("order-123"),
+            true);
   }
 
   @Test
@@ -430,7 +431,7 @@ public class WorkflowInstanceStreamProcessorTest {
     assertThat(rejection.getMetadata().getIntent())
         .isEqualTo(WorkflowInstanceSubscriptionIntent.CORRELATE);
     assertThat(BufferUtil.bufferAsString(rejection.getMetadata().getRejectionReason()))
-        .isEqualTo("subscription is already correlated");
+        .isEqualTo("subscription was already correlated or is closing");
 
     verify(streamProcessorRule.getMockSubscriptionCommandSender(), timeout(5_000).times(2))
         .correlateMessageSubscription(
@@ -478,7 +479,7 @@ public class WorkflowInstanceStreamProcessorTest {
     assertThat(rejection.getMetadata().getIntent())
         .isEqualTo(WorkflowInstanceSubscriptionIntent.CORRELATE);
     assertThat(BufferUtil.bufferAsString(rejection.getMetadata().getRejectionReason()))
-        .isEqualTo("activity is not active anymore");
+        .isEqualTo("subscription was already correlated or is closing");
   }
 
   @Test

@@ -88,7 +88,8 @@ public class OpenMessageSubscriptionProcessor
             subscriptionRecord.getWorkflowInstanceKey(),
             subscriptionRecord.getElementInstanceKey(),
             subscriptionRecord.getMessageName(),
-            subscriptionRecord.getCorrelationKey());
+            subscriptionRecord.getCorrelationKey(),
+            subscriptionRecord.shouldCloseOnCorrelate());
     subscriptionState.put(subscription);
 
     messageState.visitMessages(
@@ -134,6 +135,7 @@ public class OpenMessageSubscriptionProcessor
     return commandSender.openWorkflowInstanceSubscription(
         subscriptionRecord.getWorkflowInstanceKey(),
         subscriptionRecord.getElementInstanceKey(),
-        subscriptionRecord.getMessageName());
+        subscriptionRecord.getMessageName(),
+        subscriptionRecord.shouldCloseOnCorrelate());
   }
 }
