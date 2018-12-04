@@ -41,12 +41,17 @@ import io.zeebe.broker.workflow.repository.WorkflowRepository;
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamWriterImpl;
+import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateSnapshotController;
 import io.zeebe.logstreams.state.StateStorage;
 import io.zeebe.protocol.Protocol;
 import io.zeebe.protocol.clientapi.ValueType;
 import io.zeebe.protocol.intent.DeploymentIntent;
-import io.zeebe.servicecontainer.*;
+import io.zeebe.servicecontainer.Injector;
+import io.zeebe.servicecontainer.Service;
+import io.zeebe.servicecontainer.ServiceGroupReference;
+import io.zeebe.servicecontainer.ServiceName;
+import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.transport.ClientTransport;
 import io.zeebe.transport.ServerTransport;
 
@@ -101,22 +106,24 @@ public class ZbStreamProcessorService implements Service<ZbStreamProcessorServic
             .processorId(partitionId)
             .processorName(PROCESSOR_NAME);
 
-    final TypedStreamEnvironment streamEnvironment =
-        new TypedStreamEnvironment(partition.getLogStream(), clientApiTransport.getOutput());
-
-    final ZeebeState zeebeState = new ZeebeState(partitionId);
+    final StateController stateController = new StateController();
     final StateStorage stateStorage =
         partition.getStateStorageFactory().create(partitionId, PROCESSOR_NAME);
     final StateSnapshotController stateSnapshotController =
-        new StateSnapshotController(zeebeState, stateStorage);
-
-    final TypedStreamProcessor typedStreamProcessor =
-        createTypedStreamProcessor(
-            partitionServiceName, partitionId, streamEnvironment, zeebeState);
+        new StateSnapshotController(stateController, stateStorage);
 
     streamProcessorServiceBuilder
-        .processor(typedStreamProcessor)
         .snapshotController(stateSnapshotController)
+        .streamProcessorFactory(
+            (zeebeDb) -> {
+              final ZeebeState zeebeState = new ZeebeState(zeebeDb);
+              final TypedStreamEnvironment streamEnvironment =
+                  new TypedStreamEnvironment(
+                      partition.getLogStream(), clientApiTransport.getOutput());
+
+              return createTypedStreamProcessor(
+                  partitionServiceName, partitionId, streamEnvironment, zeebeState);
+            })
         .build();
   }
 

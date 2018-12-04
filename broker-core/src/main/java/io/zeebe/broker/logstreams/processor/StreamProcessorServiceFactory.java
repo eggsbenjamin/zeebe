@@ -25,6 +25,7 @@ import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.logstreams.processor.EventFilter;
 import io.zeebe.logstreams.processor.StreamProcessor;
 import io.zeebe.logstreams.spi.SnapshotController;
+import io.zeebe.logstreams.state.StateController;
 import io.zeebe.protocol.Protocol;
 import io.zeebe.protocol.impl.record.RecordMetadata;
 import io.zeebe.servicecontainer.Service;
@@ -37,6 +38,7 @@ import io.zeebe.util.sched.future.ActorFuture;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class StreamProcessorServiceFactory implements Service<StreamProcessorServiceFactory> {
   private final ServiceContainer serviceContainer;
@@ -73,10 +75,16 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
 
     protected MetadataFilter customEventFilter;
     protected boolean readOnly = false;
+    private Function<StateController, StreamProcessor> streamProcessorFactory;
 
     public Builder(Partition partition, ServiceName<Partition> serviceName) {
       this.logStream = partition.getLogStream();
       this.additionalDependencies.add(serviceName);
+    }
+
+    public Builder streamProcessorFactory(
+        Function<StateController, StreamProcessor> streamProcessorFactory) {
+      this.streamProcessorFactory = streamProcessorFactory;
     }
 
     public Builder processorId(int processorId) {
@@ -142,6 +150,7 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
           .eventFilter(eventFilter)
           .readOnly(readOnly)
           .additionalDependencies(additionalDependencies)
+          .streamProcessorFactory(streamProcessorFactory)
           .build();
     }
   }

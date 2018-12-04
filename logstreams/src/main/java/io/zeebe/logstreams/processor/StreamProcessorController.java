@@ -21,6 +21,7 @@ import io.zeebe.logstreams.log.LogStreamReader;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.logstreams.spi.SnapshotController;
+import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
 import io.zeebe.util.LangUtil;
 import io.zeebe.util.metrics.MetricsManager;
@@ -34,6 +35,7 @@ import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.future.CompletableActorFuture;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import org.slf4j.Logger;
 
 public class StreamProcessorController extends Actor {
@@ -48,7 +50,8 @@ public class StreamProcessorController extends Actor {
   private static final String ERROR_MESSAGE_PROCESSING_FAILED =
       "Stream processor '{}' failed to process event. It stop processing further events.";
 
-  private final StreamProcessor streamProcessor;
+  private final Function<StateController, StreamProcessor> streamProcessorFactory;
+  private StreamProcessor streamProcessor;
   private final StreamProcessorContext streamProcessorContext;
   private final SnapshotController snapshotController;
 
@@ -88,7 +91,7 @@ public class StreamProcessorController extends Actor {
     this.streamProcessorContext.setResumeRunnable(this::resume);
 
     this.actorScheduler = context.getActorScheduler();
-    this.streamProcessor = context.getStreamProcessor();
+    this.streamProcessorFactory = context.getStreamProcessorFactory();
     this.logStreamReader = context.getLogStreamReader();
     this.logStreamWriter = context.getLogStreamWriter();
     this.snapshotController = context.getSnapshotController();
@@ -126,7 +129,8 @@ public class StreamProcessorController extends Actor {
     try {
       snapshotPosition = recoverFromSnapshot(logStream.getCommitPosition(), logStream.getTerm());
       lastSourceEventPosition = seekFromSnapshotPositionToLastSourceEvent();
-      streamProcessor.onOpen(streamProcessorContext);
+
+      streamProcessor = streamProcessorFactory.apply(null);
     } catch (final Exception e) {
       onFailure();
       LangUtil.rethrowUnchecked(e);

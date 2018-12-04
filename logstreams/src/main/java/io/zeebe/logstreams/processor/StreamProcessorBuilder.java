@@ -24,6 +24,7 @@ import io.zeebe.logstreams.log.LogStreamReader;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.log.LogStreamWriterImpl;
 import io.zeebe.logstreams.spi.SnapshotController;
+import io.zeebe.logstreams.state.StateController;
 import io.zeebe.servicecontainer.ServiceBuilder;
 import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.servicecontainer.ServiceName;
@@ -32,6 +33,7 @@ import io.zeebe.util.sched.future.ActorFuture;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class StreamProcessorBuilder {
   protected int id;
@@ -55,11 +57,17 @@ public class StreamProcessorBuilder {
 
   protected ServiceContainer serviceContainer;
   private List<ServiceName<?>> additionalDependencies;
+  private Function<StateController, StreamProcessor> streamProcessorFactory;
 
   public StreamProcessorBuilder(int id, String name, StreamProcessor streamProcessor) {
     this.id = id;
     this.name = name;
     this.streamProcessor = streamProcessor;
+  }
+
+  public StreamProcessorBuilder streamProcessorFactory(
+      Function<StateController, StreamProcessor> streamProcessorFactory) {
+    this.streamProcessorFactory = streamProcessorFactory;
   }
 
   public StreamProcessorBuilder additionalDependencies(
@@ -168,6 +176,7 @@ public class StreamProcessorBuilder {
       logStreamWriter = new LogStreamWriterImpl();
     }
     ctx.setLogStreamWriter(logStreamWriter);
+    ctx.setStreamProcessorFactory(streamProcessorFactory);
 
     return ctx;
   }

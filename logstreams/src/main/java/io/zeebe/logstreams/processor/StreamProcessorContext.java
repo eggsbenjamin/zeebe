@@ -19,9 +19,11 @@ import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.spi.SnapshotController;
+import io.zeebe.logstreams.state.StateController;
 import io.zeebe.util.sched.ActorControl;
 import io.zeebe.util.sched.ActorScheduler;
 import java.time.Duration;
+import java.util.function.Function;
 
 public class StreamProcessorContext {
   protected int id;
@@ -164,5 +166,16 @@ public class StreamProcessorContext {
 
   public void resumeController() {
     resumeRunnable.run();
+  }
+
+  private Function<StateController, StreamProcessor> streamProcessorFactory;
+
+  public void setStreamProcessorFactory(
+      Function<StateController, StreamProcessor> streamProcessorFactory) {
+    this.streamProcessorFactory = streamProcessorFactory;
+  }
+
+  public Function<StateController, StreamProcessor> getStreamProcessorFactory() {
+    return null;
   }
 }
