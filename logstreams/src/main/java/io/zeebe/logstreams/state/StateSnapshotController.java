@@ -15,40 +15,43 @@
  */
 package io.zeebe.logstreams.state;
 
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.ZbRocksDb;
+import io.zeebe.db.impl.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.spi.SnapshotController;
+import io.zeebe.util.FileUtil;
+import org.rocksdb.Checkpoint;
+import org.slf4j.Logger;
+
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
-import org.rocksdb.Checkpoint;
-import org.rocksdb.RocksDB;
-import org.slf4j.Logger;
 
 /** Controls how snapshot/recovery operations are performed on a StateController */
 public class StateSnapshotController implements SnapshotController {
   private static final Logger LOG = Loggers.ROCKSDB_LOGGER;
 
-  private final StateController controller;
   private final StateStorage storage;
+  private final ZeebeRocksDbFactory zeebeRocksDbFactory;
+  private ZbRocksDb db;
 
-  public StateSnapshotController(final StateController controller, final StateStorage storage) {
-    this.controller = controller;
+  public StateSnapshotController(
+      final ZeebeRocksDbFactory rocksDbFactory, final StateStorage storage) {
+    zeebeRocksDbFactory = rocksDbFactory;
     this.storage = storage;
   }
 
   @Override
   public void takeSnapshot(final StateSnapshotMetadata metadata) throws Exception {
-    if (!controller.isOpened()) {
-      throw new IllegalStateException("cannot take snapshot of closed RocksDB");
-    }
-
     if (exists(metadata)) {
       return;
     }
 
     final File snapshotDir = storage.getSnapshotDirectoryFor(metadata);
-    try (Checkpoint checkpoint = Checkpoint.create(controller.getDb())) {
+    try (Checkpoint checkpoint = Checkpoint.create(db)) {
       checkpoint.createCheckpoint(snapshotDir.getAbsolutePath());
     }
   }
@@ -71,20 +74,21 @@ public class StateSnapshotController implements SnapshotController {
     }
 
     if (runtimeDirectory.exists()) {
-      controller.delete(runtimeDirectory);
+      FileUtil.deleteFolder(runtimeDirectory.getAbsolutePath());
     }
 
     if (recoveredMetadata != null) {
       final File snapshotPath = storage.getSnapshotDirectoryFor(recoveredMetadata);
       copySnapshot(runtimeDirectory, snapshotPath);
-
-      controller.open(runtimeDirectory, true);
-    } else {
-      recoveredMetadata = StateSnapshotMetadata.createInitial(term);
-      controller.open(runtimeDirectory, false);
     }
 
     return recoveredMetadata;
+  }
+
+  @Override
+  public ZeebeDb openDb() {
+    db = zeebeRocksDbFactory.createDb();
+    return db;
   }
 
   @Override
@@ -92,7 +96,7 @@ public class StateSnapshotController implements SnapshotController {
     final List<StateSnapshotMetadata> others = storage.list(matcher);
 
     for (final StateSnapshotMetadata other : others) {
-      controller.delete(storage.getSnapshotDirectoryFor(other));
+      FileUtil.deleteFolder(storage.getSnapshotDirectoryFor(other).getAbsolutePath());
       LOG.trace("Purged snapshot {}", other);
     }
   }
@@ -102,13 +106,6 @@ public class StateSnapshotController implements SnapshotController {
   }
 
   private void copySnapshot(File runtimeDirectory, File snapshotPath) throws Exception {
-    try {
-      final RocksDB snapshotDB = controller.open(snapshotPath, true);
-      try (Checkpoint checkpoint = Checkpoint.create(snapshotDB)) {
-        checkpoint.createCheckpoint(runtimeDirectory.getAbsolutePath());
-      }
-    } finally {
-      controller.close();
-    }
+    Files.copy(snapshotPath.toPath(), runtimeDirectory.toPath());
   }
 }

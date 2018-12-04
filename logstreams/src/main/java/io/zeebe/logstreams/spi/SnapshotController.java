@@ -15,7 +15,9 @@
  */
 package io.zeebe.logstreams.spi;
 
+import io.zeebe.db.ZeebeDb;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
+
 import java.util.function.Predicate;
 
 public interface SnapshotController {
@@ -37,6 +39,8 @@ public interface SnapshotController {
    */
   StateSnapshotMetadata recover(
       long commitPosition, int term, Predicate<StateSnapshotMetadata> filter) throws Exception;
+
+  ZeebeDb openDb();
 
   /**
    * Purges all snapshots which return true for the given matcher.

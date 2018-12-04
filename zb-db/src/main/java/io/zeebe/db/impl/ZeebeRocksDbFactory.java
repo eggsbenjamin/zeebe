@@ -15,31 +15,13 @@
  */
 package io.zeebe.db.impl;
 
-import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.util.ByteValue;
+import org.rocksdb.*;
+
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.rocksdb.BlockBasedTableConfig;
-import org.rocksdb.BloomFilter;
-import org.rocksdb.Cache;
-import org.rocksdb.ChecksumType;
-import org.rocksdb.ClockCache;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
-import org.rocksdb.Env;
-import org.rocksdb.Filter;
-import org.rocksdb.MemTableConfig;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.SkipListMemTableConfig;
-import org.rocksdb.TableFormatConfig;
 
 public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
 
@@ -49,12 +31,12 @@ public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
 
   private ZeebeRocksDbFactory() {}
 
-  public static ZeebeDbFactory newFactory() {
+  public static ZeebeRocksDbFactory newFactory() {
     return new ZeebeRocksDbFactory();
   }
 
   @Override
-  public ZeebeDb createDb() {
+  public ZbRocksDb createDb() {
     return open(
         new File("/tmp/test-db2/"),
         Arrays.stream(ZbColumnFamilies.values())
@@ -62,9 +44,9 @@ public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
             .collect(Collectors.toList()));
   }
 
-  protected ZeebeDb open(final File dbDirectory, List<byte[]> columnFamilyNames) {
+  protected ZbRocksDb open(final File dbDirectory, List<byte[]> columnFamilyNames) {
 
-    ZeebeDb db = null;
+    ZbRocksDb db = null;
     try {
       final List<AutoCloseable> closeables = new ArrayList<>();
       final ColumnFamilyOptions columnFamilyOptions = createColumnFamilyOptions(closeables);

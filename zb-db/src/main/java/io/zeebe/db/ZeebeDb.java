@@ -16,9 +16,9 @@
 package io.zeebe.db;
 
 /** */
-public interface ZeebeDb extends AutoCloseable {
+public interface ZeebeDb<ColumnFamilyType extends Enum> extends AutoCloseable {
 
-  <T extends Enum> void put(T columnFamily, ZbKey key, ZbValue value);
+  void put(ColumnFamilyType columnFamily, ZbKey key, ZbValue value);
 
   /**
    * Runs the commands in a batch operation.
@@ -26,4 +26,10 @@ public interface ZeebeDb extends AutoCloseable {
    * @param operations the operations
    */
   void batch(Runnable operations);
+
+  <KeyType extends ZbKey, ValueType extends ZbValue>
+      ColumnFamily<KeyType, ValueType> createColumnFamily(
+          ColumnFamilyType columnFamily,
+          Class<KeyType> keyTypeClass,
+          Class<ValueType> valueTypeClass);
 }

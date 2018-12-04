@@ -15,21 +15,18 @@
  */
 package io.zeebe.db.impl;
 
+import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
 import io.zeebe.db.ZeebeDb;
+import org.agrona.ExpandableArrayBuffer;
+import org.rocksdb.*;
+
 import java.lang.reflect.Field;
 import java.util.EnumMap;
 import java.util.List;
-import org.agrona.ExpandableArrayBuffer;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.DBOptions;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksObject;
-import org.rocksdb.WriteOptions;
 
-public class ZbRocksDb extends RocksDB implements ZeebeDb {
+public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
 
   private static final Field NATIVE_HANDLE_FIELD;
 
@@ -89,7 +86,23 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb {
   }
 
   @Override
-  public <T extends Enum> void put(T columnFamily, ZbKey key, ZbValue value) {
+  public <KeyType extends ZbKey, ValueType extends ZbValue>
+      ColumnFamily<KeyType, ValueType> createColumnFamily(
+          ZbColumnFamilies columnFamily,
+          Class<KeyType> keyTypeClass,
+          Class<ValueType> valueTypeClass) {
+    try {
+      return new RocksDbColumnFamily<>(this, columnFamily, valueTypeClass.newInstance());
+    } catch (InstantiationException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+
+  @Override
+  public void put(ZbColumnFamilies columnFamily, ZbKey key, ZbValue value) {
     final long columnFamilyHandle = columnFamilyMap.get(columnFamily);
     put(columnFamilyHandle, key, value);
   }

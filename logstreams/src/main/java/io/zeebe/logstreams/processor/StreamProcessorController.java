@@ -15,28 +15,26 @@
  */
 package io.zeebe.logstreams.processor;
 
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.log.LoggedEvent;
 import io.zeebe.logstreams.spi.SnapshotController;
-import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
 import io.zeebe.util.LangUtil;
 import io.zeebe.util.metrics.MetricsManager;
-import io.zeebe.util.sched.Actor;
-import io.zeebe.util.sched.ActorCondition;
-import io.zeebe.util.sched.ActorPriority;
-import io.zeebe.util.sched.ActorScheduler;
+import io.zeebe.util.sched.*;
 import io.zeebe.util.sched.ActorTask.ActorLifecyclePhase;
-import io.zeebe.util.sched.SchedulingHints;
 import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.future.CompletableActorFuture;
+import org.slf4j.Logger;
+
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import org.slf4j.Logger;
 
 public class StreamProcessorController extends Actor {
   private static final Logger LOG = Loggers.LOGSTREAMS_LOGGER;
@@ -50,7 +48,7 @@ public class StreamProcessorController extends Actor {
   private static final String ERROR_MESSAGE_PROCESSING_FAILED =
       "Stream processor '{}' failed to process event. It stop processing further events.";
 
-  private final Function<StateController, StreamProcessor> streamProcessorFactory;
+  private final StreamProcessorFactory streamProcessorFactory;
   private StreamProcessor streamProcessor;
   private final StreamProcessorContext streamProcessorContext;
   private final SnapshotController snapshotController;
@@ -82,6 +80,7 @@ public class StreamProcessorController extends Actor {
   private boolean suspended = false;
 
   private StreamProcessorMetrics metrics;
+  private final Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory;
 
   public StreamProcessorController(final StreamProcessorContext context) {
     this.streamProcessorContext = context;
@@ -91,10 +90,12 @@ public class StreamProcessorController extends Actor {
     this.streamProcessorContext.setResumeRunnable(this::resume);
 
     this.actorScheduler = context.getActorScheduler();
+
     this.streamProcessorFactory = context.getStreamProcessorFactory();
+    this.snapshotController = context.getSnapshotController();
+
     this.logStreamReader = context.getLogStreamReader();
     this.logStreamWriter = context.getLogStreamWriter();
-    this.snapshotController = context.getSnapshotController();
     this.snapshotPeriod = context.getSnapshotPeriod();
     this.eventFilter = context.getEventFilter();
     this.isReadOnlyProcessor = context.isReadOnlyProcessor();
@@ -127,10 +128,12 @@ public class StreamProcessorController extends Actor {
     logStreamWriter.wrap(logStream);
 
     try {
+
       snapshotPosition = recoverFromSnapshot(logStream.getCommitPosition(), logStream.getTerm());
       lastSourceEventPosition = seekFromSnapshotPositionToLastSourceEvent();
 
-      streamProcessor = streamProcessorFactory.apply(null);
+      final ZeebeDb zeebeDb = snapshotController.openDb();
+      streamProcessor = streamProcessorFactory.createProcessor(zeebeDb);
     } catch (final Exception e) {
       onFailure();
       LangUtil.rethrowUnchecked(e);

@@ -15,13 +15,14 @@
  */
 package io.zeebe.logstreams.processor;
 
+import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.spi.SnapshotController;
-import io.zeebe.logstreams.state.StateController;
 import io.zeebe.util.sched.ActorControl;
 import io.zeebe.util.sched.ActorScheduler;
+
 import java.time.Duration;
 import java.util.function.Function;
 
@@ -47,6 +48,8 @@ public class StreamProcessorContext {
 
   private Runnable suspendRunnable;
   private Runnable resumeRunnable;
+  private ZeebeDbFactory zeebeDbFactory;
+  private Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory;
 
   public LogStream getLogStream() {
     return logStream;
@@ -168,14 +171,30 @@ public class StreamProcessorContext {
     resumeRunnable.run();
   }
 
-  private Function<StateController, StreamProcessor> streamProcessorFactory;
+  private StreamProcessorFactory streamProcessorFactory;
 
-  public void setStreamProcessorFactory(
-      Function<StateController, StreamProcessor> streamProcessorFactory) {
+  public void setStreamProcessorFactory(StreamProcessorFactory streamProcessorFactory) {
     this.streamProcessorFactory = streamProcessorFactory;
   }
 
-  public Function<StateController, StreamProcessor> getStreamProcessorFactory() {
-    return null;
+  public StreamProcessorFactory getStreamProcessorFactory() {
+    return streamProcessorFactory;
+  }
+
+  public void setZeebeDbFactory(ZeebeDbFactory zeebeDbFactory) {
+    this.zeebeDbFactory = zeebeDbFactory;
+  }
+
+  public ZeebeDbFactory getZeebeDbFactory() {
+    return zeebeDbFactory;
+  }
+
+  public void setSnapshotControllerFactory(
+      Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory) {
+    this.snapshotControllerFactory = snapshotControllerFactory;
+  }
+
+  public Function<ZeebeDbFactory, SnapshotController> getSnapshotControllerFactory() {
+    return snapshotControllerFactory;
   }
 }
