@@ -15,13 +15,27 @@
  */
 package io.zeebe.db;
 
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public interface ColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue> {
 
   void put(KeyType key, ValueType value);
 
+  /**
+   * The corresponding stored value to the given key.
+   *
+   * @param key the key
+   * @return the value, if the key was not found null
+   */
   ValueType get(KeyType key);
 
-  void foreach(Consumer<ValueType> value);
+  void foreach(Consumer<ValueType> consumer);
+
+  void whileTrue(BiFunction<KeyType, ValueType, Boolean> iterator);
+
+  void whileEqualPrefix(ZbKey keyPrefix, BiConsumer<KeyType, ValueType> consumer);
+
+  void delete(KeyType dueDateAndElementInstanceKeyTimerKey);
 }

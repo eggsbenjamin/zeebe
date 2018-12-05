@@ -18,28 +18,36 @@
 package io.zeebe.broker.workflow.state;
 
 import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbString;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 
 public class NextValueManager {
 
   private static final int INITIAL_VALUE = 0;
 
   private final long initialValue;
-  private final ZbString zbString = new ZbString();
 
-  public NextValueManager() {
-    this(INITIAL_VALUE);
+  private final ColumnFamily<ZbString, ZbLong> nextValueColumnFamily;
+  private final ZbString nextValueKey;
+
+  public NextValueManager(ZeebeDb<ZbColumnFamilies> zeebeDb, ZbColumnFamilies columnFamily) {
+    this(INITIAL_VALUE, zeebeDb, columnFamily);
   }
 
-  public NextValueManager(long initialValue) {
+  public NextValueManager(
+      long initialValue, ZeebeDb<ZbColumnFamilies> zeebeDb, ZbColumnFamilies columnFamily) {
     this.initialValue = initialValue;
+
+    nextValueKey = new ZbString();
+    nextValueColumnFamily = zeebeDb.createColumnFamily(columnFamily, nextValueKey, new ZbLong());
   }
 
-  public long getNextValue(ColumnFamily<ZbString, ZbLong> columnFamily, String key) {
-    zbString.wrapString(key);
+  public long getNextValue(String key) {
+    nextValueKey.wrapString(key);
 
-    final ZbLong zbLong = columnFamily.get(zbString);
+    final ZbLong zbLong = nextValueColumnFamily.get(nextValueKey);
 
     long previousKey = initialValue;
     if (zbLong.isFilled()) {
@@ -48,7 +56,7 @@ public class NextValueManager {
 
     final long nextKey = previousKey + 1;
     zbLong.wrapLong(nextKey);
-    columnFamily.put(zbString, zbLong);
+    nextValueColumnFamily.put(nextValueKey, zbLong);
 
     return nextKey;
   }

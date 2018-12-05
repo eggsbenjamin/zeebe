@@ -4,32 +4,41 @@ import io.zeebe.db.ZbKey;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-public class ZbCompositeKey<FirstKey extends ZbKey, SecondKey extends ZbKey> implements ZbKey {
+public class ZbCompositeKey<FirstKeyType extends ZbKey, SecondKeyType extends ZbKey>
+    implements ZbKey {
 
-  private FirstKey firstKeyPart;
-  private SecondKey secondKeyPart;
+  private FirstKeyType firstKeyTypePart;
+  private SecondKeyType secondKeyTypePart;
 
-  public void wrapKeys(FirstKey firstKey, SecondKey secondKey) {
-    this.firstKeyPart = firstKey;
-    this.secondKeyPart = secondKey;
+  public void wrapKeys(FirstKeyType firstKeyType, SecondKeyType secondKeyType) {
+    this.firstKeyTypePart = firstKeyType;
+    this.secondKeyTypePart = secondKeyType;
+  }
+
+  public FirstKeyType getFirst() {
+    return firstKeyTypePart;
+  }
+
+  public SecondKeyType getSecond() {
+    return secondKeyTypePart;
   }
 
   @Override
   public void wrap(DirectBuffer directBuffer, int offset, int length) {
-    firstKeyPart.wrap(directBuffer, offset, length);
-    final int firstKeyLength = firstKeyPart.getLength();
-    secondKeyPart.wrap(directBuffer, offset + firstKeyLength, length - firstKeyLength);
+    firstKeyTypePart.wrap(directBuffer, offset, length);
+    final int firstKeyLength = firstKeyTypePart.getLength();
+    secondKeyTypePart.wrap(directBuffer, offset + firstKeyLength, length - firstKeyLength);
   }
 
   @Override
   public int getLength() {
-    return firstKeyPart.getLength() + secondKeyPart.getLength();
+    return firstKeyTypePart.getLength() + secondKeyTypePart.getLength();
   }
 
   @Override
   public void write(MutableDirectBuffer mutableDirectBuffer, int offset) {
-    firstKeyPart.write(mutableDirectBuffer, offset);
-    final int firstKeyPartLength = firstKeyPart.getLength();
-    secondKeyPart.write(mutableDirectBuffer, offset + firstKeyPartLength);
+    firstKeyTypePart.write(mutableDirectBuffer, offset);
+    final int firstKeyPartLength = firstKeyTypePart.getLength();
+    secondKeyTypePart.write(mutableDirectBuffer, offset + firstKeyPartLength);
   }
 }

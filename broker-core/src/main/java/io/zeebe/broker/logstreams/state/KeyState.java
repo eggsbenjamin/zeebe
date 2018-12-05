@@ -19,10 +19,7 @@ package io.zeebe.broker.logstreams.state;
 
 import io.zeebe.broker.logstreams.processor.KeyGenerator;
 import io.zeebe.broker.workflow.state.NextValueManager;
-import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.ZbLong;
-import io.zeebe.db.impl.ZbString;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.Protocol;
 
@@ -33,8 +30,6 @@ public class KeyState implements KeyGenerator {
   private static final String LATEST_KEY = "latestKey";
 
   private final long keyStartValue;
-
-  private final ColumnFamily<ZbString, ZbLong> keyColumnFamily;
   private final NextValueManager nextValueManager;
 
   /**
@@ -45,13 +40,11 @@ public class KeyState implements KeyGenerator {
    */
   public KeyState(int partitionId, ZeebeDb zeebeDb) {
     keyStartValue = Protocol.encodePartitionId(partitionId, INITIAL_VALUE);
-    nextValueManager = new NextValueManager(keyStartValue);
-    keyColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.KEY, ZbString.class, ZbLong.class);
+    nextValueManager = new NextValueManager(keyStartValue, zeebeDb, ZbColumnFamilies.KEY);
   }
 
   @Override
   public long nextKey() {
-    return nextValueManager.getNextValue(keyColumnFamily, LATEST_KEY);
+    return nextValueManager.getNextValue(LATEST_KEY);
   }
 }

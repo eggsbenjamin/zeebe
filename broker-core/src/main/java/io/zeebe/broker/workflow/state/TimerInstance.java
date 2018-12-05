@@ -21,11 +21,12 @@ import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
+import io.zeebe.db.ZbValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public class TimerInstance implements Persistable {
+public class TimerInstance implements ZbValue {
   public static final int KEY_LENGTH = 2 * Long.BYTES;
 
   private final DirectBuffer handlerNodeId = new UnsafeBuffer(0, 0);

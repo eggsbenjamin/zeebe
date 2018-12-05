@@ -64,7 +64,7 @@ public class ZeebeDbTest {
     final ZbLong longValue = new ZbLong();
     longValue.wrapLong(1);
 
-    final RocksDbColumnFamily<ZbLong, ZbLong> columnFamily =
+    final RocksDbColumnFamily<Void, ZbLong, ZbLong> columnFamily =
         new RocksDbColumnFamily<>((ZbRocksDb) zeebeDb, ZbColumnFamilies.DEFAULT, new ZbLong());
 
     // when

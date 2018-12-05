@@ -17,64 +17,35 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.ZbLong;
-import io.zeebe.db.impl.ZbString;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateLifecycleListener;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
 import java.io.File;
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
 
 public class WorkflowState implements StateLifecycleListener {
 
-  private static final byte[] WORKFLOW_VERSION_FAMILY_NAME =
-      "workflowStateWorkflowVersion".getBytes();
-  public static final byte[][] COLUMN_FAMILY_NAMES = {WORKFLOW_VERSION_FAMILY_NAME};
-
-  public static List<byte[]> getColumnFamilyNames() {
-    return Stream.of(
-            COLUMN_FAMILY_NAMES,
-            WorkflowPersistenceCache.COLUMN_FAMILY_NAMES,
-            ElementInstanceState.COLUMN_FAMILY_NAMES,
-            TimerInstanceState.COLUMN_FAMILY_NAMES)
-        .flatMap(Stream::of)
-        .collect(Collectors.toList());
-  }
-
-  // version
-  private final ColumnFamily<ZbString, ZbLong> workflowVersionColumnFamily;
-  private final NextValueManager nextValueManager;
-
-  //
-  private WorkflowPersistenceCache workflowPersistenceCache;
-  private TimerInstanceState timerInstanceState;
+  private final NextValueManager versionManager;
+  private final WorkflowPersistenceCache workflowPersistenceCache;
+  private final TimerInstanceState timerInstanceState;
   private ElementInstanceState elementInstanceState;
 
   public WorkflowState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
-    workflowVersionColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_VERSION, ZbString.class, ZbLong.class);
-    nextValueManager = new NextValueManager();
-
+    versionManager = new NextValueManager(zeebeDb, ZbColumnFamilies.WORKFLOW_VERSION);
     workflowPersistenceCache = new WorkflowPersistenceCache(zeebeDb);
+    timerInstanceState = new TimerInstanceState(zeebeDb);
   }
 
   @Override
   public void onOpened(StateController stateController) {
-
-    workflowPersistenceCache = new WorkflowPersistenceCache(stateController);
-    timerInstanceState = new TimerInstanceState(stateController);
     elementInstanceState = new ElementInstanceState(stateController);
   }
 
   public int getNextWorkflowVersion(String bpmnProcessId) {
-    return (int) nextValueManager.getNextValue(workflowVersionColumnFamily, bpmnProcessId);
+    return (int) versionManager.getNextValue(bpmnProcessId);
   }
 
   public boolean putDeployment(long deploymentKey, DeploymentRecord deploymentRecord) {

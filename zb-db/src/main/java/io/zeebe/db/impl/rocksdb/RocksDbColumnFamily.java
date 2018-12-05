@@ -18,6 +18,8 @@ package io.zeebe.db.impl.rocksdb;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 /** */
@@ -45,5 +47,14 @@ public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValu
     return null;
   }
 
-  public void foreach(Consumer<ValueType> valueVisitor) {}
+  public void foreach(Consumer<ValueType> consumer) {}
+
+  @Override
+  public void whileTrue(BiFunction<KeyType, ValueType, Boolean> iterator) {}
+
+  @Override
+  public void whileEqualPrefix(ZbKey keyPrefixType, BiConsumer<KeyType, ValueType> consumer) {}
+
+  @Override
+  public void delete(KeyType key) {}
 }

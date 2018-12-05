@@ -29,7 +29,5 @@ public interface ZeebeDb<ColumnFamilyType extends Enum> extends AutoCloseable {
 
   <KeyType extends ZbKey, ValueType extends ZbValue>
       ColumnFamily<KeyType, ValueType> createColumnFamily(
-          ColumnFamilyType columnFamily,
-          Class<KeyType> keyTypeClass,
-          Class<ValueType> valueTypeClass);
+          ColumnFamilyType columnFamily, KeyType keyInstance, ValueType valueInstance);
 }

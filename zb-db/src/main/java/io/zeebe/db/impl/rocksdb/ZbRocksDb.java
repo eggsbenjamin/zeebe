@@ -92,17 +92,8 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
   @Override
   public <KeyType extends ZbKey, ValueType extends ZbValue>
       ColumnFamily<KeyType, ValueType> createColumnFamily(
-          ZbColumnFamilies columnFamily,
-          Class<KeyType> keyTypeClass,
-          Class<ValueType> valueTypeClass) {
-    try {
-      return new RocksDbColumnFamily<>(this, columnFamily, valueTypeClass.newInstance());
-    } catch (InstantiationException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      e.printStackTrace();
-    }
-    return null;
+          ZbColumnFamilies columnFamily, KeyType keyInstance, ValueType valueInstance) {
+    return new RocksDbColumnFamily<>(this, columnFamily, valueInstance);
   }
 
   @Override
