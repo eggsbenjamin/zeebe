@@ -18,6 +18,7 @@ package io.zeebe.db.impl.rocksdb;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
+import java.util.function.Consumer;
 
 /** */
 public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue>
@@ -43,4 +44,6 @@ public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValu
   public ValueType get(KeyType key) {
     return null;
   }
+
+  public void foreach(Consumer<ValueType> valueVisitor) {}
 }

@@ -15,9 +15,13 @@
  */
 package io.zeebe.db;
 
+import java.util.function.Consumer;
+
 public interface ColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue> {
 
   void put(KeyType key, ValueType value);
 
   ValueType get(KeyType key);
+
+  void foreach(Consumer<ValueType> value);
 }

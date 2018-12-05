@@ -272,18 +272,6 @@ public class WorkflowPersistenceCache {
   }
 
   private void updateCompleteInMemoryState() {
-    workflowColumnFamily.foreach((workflow) ->
-    {
-
-    })
-    // update in memory state
-    rocksDbWrapper.foreach(
-        workflowsHandle,
-        (key, value) -> {
-          valueBuffer.putBytes(0, value);
-          final PersistedWorkflow persistedWorkflow = new PersistedWorkflow();
-          persistedWorkflow.wrap(valueBuffer, 0, value.length);
-          updateInMemoryState(persistedWorkflow);
-        });
+    workflowColumnFamily.foreach((workflow) -> updateInMemoryState(persistedWorkflow));
   }
 }
