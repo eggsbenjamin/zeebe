@@ -16,10 +16,10 @@
 package io.zeebe.db;
 
 import io.zeebe.db.impl.PersistableLong;
-import io.zeebe.db.impl.RocksDbColumnFamily;
-import io.zeebe.db.impl.ZbColumnFamilies;
-import io.zeebe.db.impl.ZbRocksDb;
-import io.zeebe.db.impl.ZeebeRocksDbFactory;
+import io.zeebe.db.impl.rocksdb.RocksDbColumnFamily;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
+import io.zeebe.db.impl.rocksdb.ZbRocksDb;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

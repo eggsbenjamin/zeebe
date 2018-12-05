@@ -16,8 +16,8 @@
 package io.zeebe.logstreams.state;
 
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.ZbRocksDb;
-import io.zeebe.db.impl.ZeebeRocksDbFactory;
+import io.zeebe.db.impl.rocksdb.ZbRocksDb;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.util.FileUtil;

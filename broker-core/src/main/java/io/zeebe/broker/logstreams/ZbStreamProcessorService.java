@@ -39,7 +39,7 @@ import io.zeebe.broker.workflow.processor.deployment.DeploymentEventProcessors;
 import io.zeebe.broker.workflow.processor.timer.DueDateTimerChecker;
 import io.zeebe.broker.workflow.repository.WorkflowRepository;
 import io.zeebe.broker.workflow.state.WorkflowState;
-import io.zeebe.db.impl.ZeebeRocksDbFactory;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamWriterImpl;
 import io.zeebe.logstreams.state.StateSnapshotController;

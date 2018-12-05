@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.db.impl;
+package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;

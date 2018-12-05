@@ -20,18 +20,17 @@ package io.zeebe.broker.workflow.state;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.PersistableLong;
-import io.zeebe.db.impl.ZbColumnFamilies;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateLifecycleListener;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
-import org.agrona.DirectBuffer;
-import org.rocksdb.ColumnFamilyHandle;
-
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.agrona.DirectBuffer;
+import org.rocksdb.ColumnFamilyHandle;
 
 public class WorkflowState implements StateLifecycleListener {
 
@@ -60,7 +59,7 @@ public class WorkflowState implements StateLifecycleListener {
   public WorkflowState(ZeebeDb zeebeDb) {
     workflowVersionColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.THIS_IS_ONE, PersistableLong.class, PersistableLong.class);
+            ZbColumnFamilies.WORKFLOW_VERSION, PersistableLong.class, PersistableLong.class);
   }
 
   @Override
