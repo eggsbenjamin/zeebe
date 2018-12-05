@@ -20,13 +20,9 @@ import io.zeebe.db.ZbValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-public class PersistableLong implements ZbKey, ZbValue {
+public class ZbLong implements ZbKey, ZbValue {
 
   private long longValue;
-
-  public PersistableLong(long longValue) {
-    this.longValue = longValue;
-  }
 
   public void wrapLong(long value) {
     longValue = value;

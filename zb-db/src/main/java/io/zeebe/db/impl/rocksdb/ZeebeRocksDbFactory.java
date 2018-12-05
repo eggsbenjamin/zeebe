@@ -17,11 +17,28 @@ package io.zeebe.db.impl.rocksdb;
 
 import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.util.ByteValue;
-import org.rocksdb.*;
-
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
+import org.rocksdb.Cache;
+import org.rocksdb.ChecksumType;
+import org.rocksdb.ClockCache;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
+import org.rocksdb.Env;
+import org.rocksdb.Filter;
+import org.rocksdb.MemTableConfig;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.SkipListMemTableConfig;
+import org.rocksdb.TableFormatConfig;
 
 public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
 

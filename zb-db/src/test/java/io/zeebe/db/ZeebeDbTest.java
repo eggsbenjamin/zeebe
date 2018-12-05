@@ -15,7 +15,7 @@
  */
 package io.zeebe.db;
 
-import io.zeebe.db.impl.PersistableLong;
+import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.rocksdb.RocksDbColumnFamily;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.db.impl.rocksdb.ZbRocksDb;
@@ -42,13 +42,15 @@ public class ZeebeDbTest {
   @Test
   public void shouldStoreValue() {
     // given db
-    final PersistableLong longKey = new PersistableLong(1);
-    final PersistableLong longValue = new PersistableLong(2);
+    final ZbLong longKey = new ZbLong();
+    longKey.wrapLong(1);
+    final ZbLong longValue = new ZbLong();
+    longKey.wrapLong(2);
 
     // when
-    zeebeDb.put(ZbColumnFamilies.ANOTHER_ONE, longKey, longValue);
+    zeebeDb.put(ZbColumnFamilies.DEFAULT, longKey, longValue);
 
-    zeebeDb.batch(() -> zeebeDb.put(ZbColumnFamilies.ANOTHER_ONE, longKey, longValue));
+    zeebeDb.batch(() -> zeebeDb.put(ZbColumnFamilies.DEFAULT, longKey, longValue));
 
     // then
 
@@ -57,13 +59,13 @@ public class ZeebeDbTest {
   @Test
   public void shouldStoreValueWithColumnFamily() {
     // given db
-    final PersistableLong longKey = new PersistableLong(1);
+    final ZbLong longKey = new ZbLong();
     longKey.wrapLong(2);
-    final PersistableLong longValue = new PersistableLong(2);
+    final ZbLong longValue = new ZbLong();
+    longValue.wrapLong(1);
 
-    final RocksDbColumnFamily<PersistableLong, PersistableLong> columnFamily =
-        new RocksDbColumnFamily<>(
-            (ZbRocksDb) zeebeDb, ZbColumnFamilies.ANOTHER_ONE, new PersistableLong(2));
+    final RocksDbColumnFamily<ZbLong, ZbLong> columnFamily =
+        new RocksDbColumnFamily<>((ZbRocksDb) zeebeDb, ZbColumnFamilies.DEFAULT, new ZbLong());
 
     // when
     columnFamily.put(longKey, longValue);

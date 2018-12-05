@@ -19,7 +19,7 @@ package io.zeebe.broker.workflow.state;
 
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.PersistableLong;
+import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateLifecycleListener;
@@ -54,12 +54,11 @@ public class WorkflowState implements StateLifecycleListener {
   private TimerInstanceState timerInstanceState;
   private ElementInstanceState elementInstanceState;
 
-  private final ColumnFamily<PersistableLong, PersistableLong> workflowVersionColumnFamily;
+  private final ColumnFamily<ZbLong, ZbLong> workflowVersionColumnFamily;
 
   public WorkflowState(ZeebeDb zeebeDb) {
     workflowVersionColumnFamily =
-        zeebeDb.createColumnFamily(
-            ZbColumnFamilies.WORKFLOW_VERSION, PersistableLong.class, PersistableLong.class);
+        zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_VERSION, ZbLong.class, ZbLong.class);
   }
 
   @Override

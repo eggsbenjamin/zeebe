@@ -19,12 +19,16 @@ import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
 import io.zeebe.db.ZeebeDb;
-import org.agrona.ExpandableArrayBuffer;
-import org.rocksdb.*;
-
 import java.lang.reflect.Field;
 import java.util.EnumMap;
 import java.util.List;
+import org.agrona.ExpandableArrayBuffer;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.DBOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksObject;
+import org.rocksdb.WriteOptions;
 
 public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
 

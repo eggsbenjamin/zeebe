@@ -21,14 +21,13 @@ import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.util.FileUtil;
-import org.rocksdb.Checkpoint;
-import org.slf4j.Logger;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
+import org.rocksdb.Checkpoint;
+import org.slf4j.Logger;
 
 /** Controls how snapshot/recovery operations are performed on a StateController */
 public class StateSnapshotController implements SnapshotController {
