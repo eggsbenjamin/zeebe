@@ -21,12 +21,11 @@ import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
-import io.zeebe.util.buffer.BufferReader;
-import io.zeebe.util.buffer.BufferWriter;
+import io.zeebe.db.ZbValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-public class PendingDeploymentDistribution implements BufferReader, BufferWriter {
+public class PendingDeploymentDistribution implements ZbValue {
 
   private static final int DEPLOYMENT_LENGTH_OFFSET = SIZE_OF_LONG;
   private static final int DEPLOYMENT_OFFSET = DEPLOYMENT_LENGTH_OFFSET + SIZE_OF_INT;

@@ -49,6 +49,8 @@ public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValu
 
   public void foreach(Consumer<ValueType> consumer) {}
 
+  public void foreach(BiConsumer<KeyType, ValueType> consumer) {}
+
   @Override
   public void whileTrue(BiFunction<KeyType, ValueType, Boolean> iterator) {}
 

@@ -36,8 +36,8 @@ public class ZeebeState extends StateController {
 
   private final KeyState keyState;
   private final WorkflowState workflowState;
+  private final DeploymentsState deploymentState;
 
-  private final DeploymentsState deploymentState = new DeploymentsState();
   private final JobState jobState = new JobState();
   private final MessageState messageState = new MessageState();
   private final MessageSubscriptionState messageSubscriptionState = new MessageSubscriptionState();
@@ -48,8 +48,8 @@ public class ZeebeState extends StateController {
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     keyState = new KeyState(partitionId, zeebeDb);
     workflowState = new WorkflowState(zeebeDb);
+    deploymentState = new DeploymentsState(zeebeDb);
 
-    deploymentState.onOpened(this);
     jobState.onOpened(this);
     messageState.onOpened(this);
     messageSubscriptionState.onOpened(this);

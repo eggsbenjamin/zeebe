@@ -33,6 +33,8 @@ public interface ColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue> 
 
   void foreach(Consumer<ValueType> consumer);
 
+  void foreach(BiConsumer<KeyType, ValueType> consumer);
+
   void whileTrue(BiFunction<KeyType, ValueType, Boolean> iterator);
 
   void whileEqualPrefix(ZbKey keyPrefix, BiConsumer<KeyType, ValueType> consumer);
