@@ -17,11 +17,14 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
-
 import io.zeebe.broker.workflow.model.element.ExecutableWorkflow;
 import io.zeebe.broker.workflow.model.transformation.BpmnTransformer;
-import io.zeebe.logstreams.state.StateController;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.ZbCompositeKey;
+import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbString;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
@@ -34,50 +37,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.io.DirectBufferInputStream;
-import org.rocksdb.ColumnFamilyHandle;
 
 public class WorkflowPersistenceCache {
-  private static final byte[] WORKFLOWS_FAMILY_NAME =
-      "workflowPersistenceCacheWorkflows".getBytes();
-  private static final byte[] WORKFLOWS_BY_ID_AND_VERSION_FAMILY_NAME =
-      "workflowPersistenceCacheWorkflowsByIdAndVersion".getBytes();
-  private static final byte[] LATEST_WORKFLOWS_FAMILY_NAME =
-      "workflowPersistenceCacheLatestWorkflow".getBytes();
-
-  public static final byte[][] COLUMN_FAMILY_NAMES = {
-    WORKFLOWS_FAMILY_NAME, WORKFLOWS_BY_ID_AND_VERSION_FAMILY_NAME, LATEST_WORKFLOWS_FAMILY_NAME
-  };
-
   private final BpmnTransformer transformer = new BpmnTransformer();
 
   private final Map<DirectBuffer, Int2ObjectHashMap<DeployedWorkflow>>
       workflowsByProcessIdAndVersion = new HashMap<>();
-
-  private final StateController rocksDbWrapper;
-  private final ColumnFamilyHandle workflowsHandle;
-  private final ColumnFamilyHandle workflowsByIdAndVersionHandle;
-  private final ColumnFamilyHandle latestWorkflowsHandle;
-
-  private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
-  private final ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
-
   private final LongHashSet deployments;
   private final Long2ObjectHashMap<DeployedWorkflow> workflowsByKey;
-  private final PersistenceHelper persistenceHelper;
 
-  public WorkflowPersistenceCache(StateController rocksDbWrapper) {
-    this.rocksDbWrapper = rocksDbWrapper;
-    persistenceHelper = new PersistenceHelper(rocksDbWrapper);
+  // workflow
+  private final ColumnFamily<ZbLong, PersistedWorkflow> workflowColumnFamily;
+  private final ZbLong workflowKey;
+  private final PersistedWorkflow persistedWorkflow;
 
-    workflowsHandle = rocksDbWrapper.getColumnFamilyHandle(WORKFLOWS_FAMILY_NAME);
-    workflowsByIdAndVersionHandle =
-        rocksDbWrapper.getColumnFamilyHandle(WORKFLOWS_BY_ID_AND_VERSION_FAMILY_NAME);
-    latestWorkflowsHandle = rocksDbWrapper.getColumnFamilyHandle(LATEST_WORKFLOWS_FAMILY_NAME);
+  private final ColumnFamily<ZbCompositeKey, PersistedWorkflow> workflowByIdAndVersionColumnFamily;
+  private final ZbCompositeKey<ZbString, ZbLong> idAndVersionKey;
+
+  private final ColumnFamily<ZbString, ZbLong> latestWorkflowColumnFamily;
+  private final ZbString workflowId;
+  private final ZbLong workflowVersion;
+
+  public WorkflowPersistenceCache(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    workflowColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.WORKFLOW_CACHE, ZbLong.class, PersistedWorkflow.class);
+    workflowKey = new ZbLong();
+    persistedWorkflow = new PersistedWorkflow();
+
+    workflowByIdAndVersionColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.WORKFLOW_CACHE_BY_ID_AND_VERSION,
+            ZbCompositeKey.class,
+            PersistedWorkflow.class);
+    idAndVersionKey = new ZbCompositeKey<>();
+    latestWorkflowColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.WORKFLOW_CACHE_LATEST_KEY, ZbString.class, ZbLong.class);
+    workflowId = new ZbString();
+    workflowVersion = new ZbLong();
 
     deployments = new LongHashSet();
     workflowsByKey = new Long2ObjectHashMap<>();
@@ -103,38 +105,17 @@ public class WorkflowPersistenceCache {
 
   private void persistWorkflow(
       final long workflowKey, final Workflow workflow, final DeploymentResource resource) {
-    final PersistedWorkflow persistedWorkflow =
-        new PersistedWorkflow(
-            workflow.getBpmnProcessId(),
-            resource.getResourceName(),
-            resource.getResource(),
-            workflow.getVersion(),
-            workflowKey);
-    persistedWorkflow.write(valueBuffer, 0);
-    final int keyLength = persistedWorkflow.writeKeyToBuffer(keyBuffer, 0);
-    final int valueLength = persistedWorkflow.getLength();
+    persistedWorkflow.wrap(resource, workflow, workflowKey);
+    this.workflowKey.wrapLong(workflowKey);
+    workflowColumnFamily.put(this.workflowKey, persistedWorkflow);
 
-    rocksDbWrapper.put(workflowsHandle, workflowKey, valueBuffer.byteArray(), 0, valueLength);
+    workflowId.wrapBuffer(workflow.getBpmnProcessId());
+    workflowVersion.wrapLong(workflow.getVersion());
+    idAndVersionKey.wrapKeys(workflowId, workflowVersion);
 
-    rocksDbWrapper.put(
-        workflowsByIdAndVersionHandle,
-        keyBuffer.byteArray(),
-        0,
-        keyLength,
-        valueBuffer.byteArray(),
-        0,
-        valueLength);
+    workflowByIdAndVersionColumnFamily.put(idAndVersionKey, persistedWorkflow);
 
-    // put latest workflow
-    final int versionOffset = keyLength - Integer.BYTES;
-    rocksDbWrapper.put(
-        latestWorkflowsHandle,
-        keyBuffer.byteArray(),
-        0,
-        versionOffset, // without version
-        keyBuffer.byteArray(),
-        versionOffset,
-        Integer.BYTES);
+    latestWorkflowColumnFamily.put(workflowId, workflowVersion);
   }
 
   // is called on getters, if workflow is not in memory
@@ -179,33 +160,30 @@ public class WorkflowPersistenceCache {
     final Int2ObjectHashMap<DeployedWorkflow> versionMap =
         workflowsByProcessIdAndVersion.get(processId);
 
-    final int keyLength = PersistedWorkflow.writeWorkflowKey(keyBuffer, 0, processId, -1);
-    final PersistedInt latestVersion =
-        persistenceHelper.getValueInstance(
-            PersistedInt.class, latestWorkflowsHandle, keyBuffer, 0, keyLength - Integer.BYTES);
+    workflowId.wrapBuffer(processId);
+    final ZbLong latestVersion = latestWorkflowColumnFamily.get(workflowId);
 
     DeployedWorkflow deployedWorkflow;
     if (versionMap == null) {
-      deployedWorkflow = lookupWorkflowByIdAndPersistedVersion(processId, latestVersion);
+      deployedWorkflow = lookupWorkflowByIdAndPersistedVersion(latestVersion);
     } else {
       deployedWorkflow = versionMap.get(latestVersion.getValue());
       if (deployedWorkflow == null) {
-        deployedWorkflow = lookupWorkflowByIdAndPersistedVersion(processId, latestVersion);
+        deployedWorkflow = lookupWorkflowByIdAndPersistedVersion(latestVersion);
       }
     }
     return deployedWorkflow;
   }
 
-  private DeployedWorkflow lookupWorkflowByIdAndPersistedVersion(
-      DirectBuffer processId, PersistedInt version) {
-    final int latestVersion = version != null ? version.getValue() : -1;
-    final int keyLength =
-        PersistedWorkflow.writeWorkflowKey(keyBuffer, 0, processId, latestVersion);
-    final PersistedWorkflow persistedWorkflow =
-        persistenceHelper.getValueInstance(
-            PersistedWorkflow.class, workflowsByIdAndVersionHandle, keyBuffer, 0, keyLength);
+  private DeployedWorkflow lookupWorkflowByIdAndPersistedVersion(ZbLong version) {
+    final long latestVersion = version.isFilled() ? version.getValue() : -1;
+    version.wrapLong(latestVersion);
 
-    if (persistedWorkflow != null) {
+    idAndVersionKey.wrapKeys(workflowId, version);
+    final PersistedWorkflow persistedWorkflow =
+        workflowByIdAndVersionColumnFamily.get(idAndVersionKey);
+
+    if (persistedWorkflow.isFilled()) {
       final DeployedWorkflow deployedWorkflow = updateInMemoryState(persistedWorkflow);
       return deployedWorkflow;
     }
@@ -228,12 +206,14 @@ public class WorkflowPersistenceCache {
   }
 
   private DeployedWorkflow lookupPersistenceState(DirectBuffer processId, int version) {
-    final int keyLength = PersistedWorkflow.writeWorkflowKey(keyBuffer, 0, processId, version);
-    final PersistedWorkflow persistedWorkflow =
-        persistenceHelper.getValueInstance(
-            PersistedWorkflow.class, workflowsByIdAndVersionHandle, keyBuffer, 0, keyLength);
+    workflowId.wrapBuffer(processId);
+    workflowVersion.wrapLong(version);
+    idAndVersionKey.wrapKeys(workflowId, workflowVersion);
 
-    if (persistedWorkflow != null) {
+    final PersistedWorkflow persistedWorkflow =
+        workflowByIdAndVersionColumnFamily.get(idAndVersionKey);
+
+    if (persistedWorkflow.isFilled()) {
       updateInMemoryState(persistedWorkflow);
 
       final Int2ObjectHashMap<DeployedWorkflow> newVersionMap =
@@ -258,12 +238,10 @@ public class WorkflowPersistenceCache {
   }
 
   private DeployedWorkflow lookupPersistenceStateForWorkflowByKey(long workflowKey) {
-    keyBuffer.putLong(0, workflowKey, STATE_BYTE_ORDER);
-    final PersistedWorkflow persistedWorkflow =
-        persistenceHelper.getValueInstance(
-            PersistedWorkflow.class, workflowsHandle, keyBuffer, 0, Long.BYTES);
+    this.workflowKey.wrapLong(workflowKey);
 
-    if (persistedWorkflow != null) {
+    final PersistedWorkflow persistedWorkflow = workflowColumnFamily.get(this.workflowKey);
+    if (persistedWorkflow.isFilled()) {
       updateInMemoryState(persistedWorkflow);
 
       final DeployedWorkflow deployedWorkflow = workflowsByKey.get(workflowKey);
@@ -294,6 +272,10 @@ public class WorkflowPersistenceCache {
   }
 
   private void updateCompleteInMemoryState() {
+    workflowColumnFamily.foreach((workflow) ->
+    {
+
+    })
     // update in memory state
     rocksDbWrapper.foreach(
         workflowsHandle,

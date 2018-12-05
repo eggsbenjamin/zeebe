@@ -23,31 +23,31 @@ import static io.zeebe.util.buffer.BufferUtil.cloneBuffer;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
+import io.zeebe.db.ZbValue;
+import io.zeebe.protocol.impl.record.value.deployment.DeploymentResource;
+import io.zeebe.protocol.impl.record.value.deployment.Workflow;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public class PersistedWorkflow implements Persistable {
+public class PersistedWorkflow implements ZbValue {
   int version = -1;
   long key = -1;
   final UnsafeBuffer bpmnProcessId = new UnsafeBuffer(0, 0);
   final UnsafeBuffer resourceName = new UnsafeBuffer(0, 0);
   final UnsafeBuffer resource = new UnsafeBuffer(0, 0);
+  private boolean filled;
 
   public PersistedWorkflow() {}
 
-  public PersistedWorkflow(
-      DirectBuffer processId,
-      DirectBuffer resourceName,
-      DirectBuffer resource,
-      int version,
-      long key) {
-    this.bpmnProcessId.wrap(cloneBuffer(processId));
-    this.resourceName.wrap(cloneBuffer(resourceName));
-    this.resource.wrap(cloneBuffer(resource));
+  public void wrap(DeploymentResource resource, Workflow workflow, long workflowKey) {
+    // TODO is cloning necessary ?!
+    this.resource.wrap(cloneBuffer(resource.getResource()));
+    this.resourceName.wrap(cloneBuffer(resource.getResourceName()));
 
-    this.version = version;
-    this.key = key;
+    this.bpmnProcessId.wrap(cloneBuffer(workflow.getBpmnProcessId()));
+    this.version = workflow.getVersion();
+    this.key = workflowKey;
   }
 
   public int getVersion() {
@@ -111,7 +111,6 @@ public class PersistedWorkflow implements Persistable {
     return keyOffset;
   }
 
-  @Override
   public void writeKey(MutableDirectBuffer keyBuffer, int offset) {
     writeKeyToBuffer(keyBuffer, offset);
   }
@@ -143,5 +142,13 @@ public class PersistedWorkflow implements Persistable {
         + ", resource="
         + bufferAsString(resource)
         + '}';
+  }
+
+  public void setFilled(boolean filled) {
+    this.filled = filled;
+  }
+
+  public boolean isFilled() {
+    return filled;
   }
 }

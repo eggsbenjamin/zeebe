@@ -57,13 +57,12 @@ public class WorkflowState implements StateLifecycleListener {
   private TimerInstanceState timerInstanceState;
   private ElementInstanceState elementInstanceState;
 
-  public WorkflowState(ZeebeDb zeebeDb) {
+  public WorkflowState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
     workflowVersionColumnFamily =
-        zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_VERSION, ZbLong.class, ZbLong.class);
+        zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_VERSION, ZbString.class, ZbLong.class);
     nextValueManager = new NextValueManager();
 
-
-
+    workflowPersistenceCache = new WorkflowPersistenceCache(zeebeDb);
   }
 
   @Override
