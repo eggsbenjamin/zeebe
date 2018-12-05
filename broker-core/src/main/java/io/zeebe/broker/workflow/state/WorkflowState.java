@@ -19,29 +19,22 @@ package io.zeebe.broker.workflow.state;
 
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
-import io.zeebe.logstreams.state.StateController;
-import io.zeebe.logstreams.state.StateLifecycleListener;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
-import java.io.File;
 import java.util.Collection;
 import org.agrona.DirectBuffer;
 
-public class WorkflowState implements StateLifecycleListener {
+public class WorkflowState {
 
   private final NextValueManager versionManager;
   private final WorkflowPersistenceCache workflowPersistenceCache;
   private final TimerInstanceState timerInstanceState;
-  private ElementInstanceState elementInstanceState;
+  private final ElementInstanceState elementInstanceState;
 
   public WorkflowState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
     versionManager = new NextValueManager(zeebeDb, ZbColumnFamilies.WORKFLOW_VERSION);
     workflowPersistenceCache = new WorkflowPersistenceCache(zeebeDb);
     timerInstanceState = new TimerInstanceState(zeebeDb);
-  }
-
-  @Override
-  public void onOpened(StateController stateController) {
-    elementInstanceState = new ElementInstanceState(stateController);
+    elementInstanceState = new ElementInstanceState(zeebeDb);
   }
 
   public int getNextWorkflowVersion(String bpmnProcessId) {
@@ -77,10 +70,6 @@ public class WorkflowState implements StateLifecycleListener {
     return timerInstanceState;
   }
 
-  /**
-   * @return only a meaningful value after {@link WorkflowState#open(File, boolean)} was called,
-   *     i.e. during the lifetime of the owning stream processor.
-   */
   public ElementInstanceState getElementInstanceState() {
     return elementInstanceState;
   }

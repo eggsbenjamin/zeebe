@@ -19,16 +19,15 @@ package io.zeebe.broker.workflow.state;
 
 import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
 
+import io.zeebe.db.ZbValue;
 import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
-import io.zeebe.util.buffer.BufferReader;
 import io.zeebe.util.buffer.BufferUtil;
-import io.zeebe.util.buffer.BufferWriter;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public class IndexedRecord implements BufferWriter, BufferReader {
+public class IndexedRecord implements ZbValue {
 
   private long key;
   private WorkflowInstanceIntent state;

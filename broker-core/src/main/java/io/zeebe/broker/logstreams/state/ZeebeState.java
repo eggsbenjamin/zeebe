@@ -34,7 +34,9 @@ import java.util.List;
 
 public class ZeebeState extends StateController {
 
-  private final WorkflowState workflowState = new WorkflowState();
+  private final KeyState keyState;
+  private final WorkflowState workflowState;
+
   private final DeploymentsState deploymentState = new DeploymentsState();
   private final JobState jobState = new JobState();
   private final MessageState messageState = new MessageState();
@@ -42,13 +44,11 @@ public class ZeebeState extends StateController {
   private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState =
       new WorkflowInstanceSubscriptionState();
   private final IncidentState incidentState = new IncidentState();
-  private final KeyState keyState;
 
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     keyState = new KeyState(partitionId, zeebeDb);
     workflowState = new WorkflowState(zeebeDb);
 
-    workflowState.onOpened(this);
     deploymentState.onOpened(this);
     jobState.onOpened(this);
     messageState.onOpened(this);

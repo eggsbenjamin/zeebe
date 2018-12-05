@@ -22,12 +22,13 @@ import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
 import io.zeebe.broker.workflow.processor.WorkflowInstanceLifecycle;
+import io.zeebe.db.ZbValue;
 import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 
-public class ElementInstance implements Persistable {
+public class ElementInstance implements ZbValue {
 
   private final IndexedRecord elementRecord;
 
@@ -169,33 +170,6 @@ public class ElementInstance implements Persistable {
     offset = writeIntoBuffer(buffer, offset, elementRecord);
 
     assert (offset - startOffset) == getLength() : "End offset differs from getLength()";
-  }
-
-  @Override
-  public void writeKey(MutableDirectBuffer keyBuffer, int offset) {
-    int keyOffset = offset;
-    keyBuffer.putLong(keyOffset, getKey(), STATE_BYTE_ORDER);
-    keyOffset += Long.BYTES;
-
-    assert (keyOffset - offset) == getKeyLength()
-        : "Offset problem: end length is not equal to expected key length";
-  }
-
-  @Override
-  public int getKeyLength() {
-    return Long.BYTES;
-  }
-
-  public void writeParentKey(MutableDirectBuffer keyBuffer, int offset) {
-    int keyOffset = offset;
-    keyBuffer.putLong(keyOffset, parentKey, STATE_BYTE_ORDER);
-    keyOffset += Long.BYTES;
-    assert (keyOffset - offset) == getParentKeyLength()
-        : "Offset problem: end length is not equal to expected key length";
-  }
-
-  public int getParentKeyLength() {
-    return Long.BYTES;
   }
 
   public long getParentKey() {

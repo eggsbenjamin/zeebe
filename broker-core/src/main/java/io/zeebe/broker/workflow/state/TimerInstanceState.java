@@ -19,9 +19,9 @@ package io.zeebe.broker.workflow.state;
 
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.ZbByte;
 import io.zeebe.db.impl.ZbCompositeKey;
 import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbNil;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import java.util.function.Consumer;
 
@@ -34,13 +34,11 @@ public class TimerInstanceState {
   private final ZbLong elementInstanceKey;
   private final ZbCompositeKey<ZbLong, ZbLong> elementAndTimerKey;
 
-  private final ColumnFamily<ZbCompositeKey<ZbLong, ZbCompositeKey<ZbLong, ZbLong>>, ZbByte>
+  private final ColumnFamily<ZbCompositeKey<ZbLong, ZbCompositeKey<ZbLong, ZbLong>>, ZbNil>
       dueDateColumnFamily;
   private final ZbLong dueDateKey;
-  private final ZbCompositeKey<ZbLong, ZbCompositeKey<ZbLong, ZbLong>>
-      dueDateAndElementInstanceKeyTimerKey;
+  private final ZbCompositeKey<ZbLong, ZbCompositeKey<ZbLong, ZbLong>> dueDateCompositeKey;
   private final ZeebeDb<ZbColumnFamilies> zeebeDb;
-  private final ZbByte nil;
 
   private long nextDueDate;
 
@@ -54,12 +52,10 @@ public class TimerInstanceState {
     timerInstanceColumnFamily =
         zeebeDb.createColumnFamily(ZbColumnFamilies.TIMERS, elementAndTimerKey, timerInstance);
 
-    dueDateAndElementInstanceKeyTimerKey = new ZbCompositeKey<>();
-    nil = new ZbByte();
-    nil.wrapByte((byte) 1);
+    dueDateCompositeKey = new ZbCompositeKey<>();
     dueDateColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.TIMER_DUE_DATES, dueDateAndElementInstanceKeyTimerKey, nil);
+            ZbColumnFamilies.TIMER_DUE_DATES, dueDateCompositeKey, ZbNil.INSTANCE);
     dueDateKey = new ZbLong();
   }
 
@@ -73,8 +69,8 @@ public class TimerInstanceState {
           timerInstanceColumnFamily.put(elementAndTimerKey, timer);
 
           dueDateKey.wrapLong(timer.getDueDate());
-          dueDateAndElementInstanceKeyTimerKey.wrapKeys(dueDateKey, elementAndTimerKey);
-          dueDateColumnFamily.put(dueDateAndElementInstanceKeyTimerKey, nil);
+          dueDateCompositeKey.wrapKeys(dueDateKey, elementAndTimerKey);
+          dueDateColumnFamily.put(dueDateCompositeKey, ZbNil.INSTANCE);
         });
   }
 
@@ -131,8 +127,8 @@ public class TimerInstanceState {
           timerInstanceColumnFamily.delete(elementAndTimerKey);
 
           dueDateKey.wrapLong(timer.getDueDate());
-          dueDateAndElementInstanceKeyTimerKey.wrapKeys(dueDateKey, elementAndTimerKey);
-          dueDateColumnFamily.delete(dueDateAndElementInstanceKeyTimerKey);
+          dueDateCompositeKey.wrapKeys(dueDateKey, elementAndTimerKey);
+          dueDateColumnFamily.delete(dueDateCompositeKey);
         });
   }
 
