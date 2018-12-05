@@ -19,31 +19,23 @@ package io.zeebe.broker.logstreams.state;
 
 import io.zeebe.broker.logstreams.processor.KeyGenerator;
 import io.zeebe.broker.workflow.state.NextValueManager;
-import io.zeebe.logstreams.state.StateController;
-import io.zeebe.logstreams.state.StateLifecycleListener;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbString;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.Protocol;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.rocksdb.ColumnFamilyHandle;
 
-public class KeyState implements StateLifecycleListener, KeyGenerator {
+public class KeyState implements KeyGenerator {
 
   private static final long INITIAL_VALUE = 0;
 
-  private static final byte[] KEY_FAMILY_NAME = "key".getBytes();
-  private static final byte[] LATEST_KEY = "latestKey".getBytes();
-
-  public static final byte[][] COLUMN_FAMILY_NAMES = {KEY_FAMILY_NAME};
-
-  public static List<byte[]> getColumnFamilyNames() {
-    return Stream.of(COLUMN_FAMILY_NAMES).flatMap(Stream::of).collect(Collectors.toList());
-  }
+  private static final String LATEST_KEY = "latestKey";
 
   private final long keyStartValue;
 
-  private ColumnFamilyHandle keyHandle;
-  private NextValueManager nextValueManager;
+  private final ColumnFamily<ZbString, ZbLong> keyColumnFamily;
+  private final NextValueManager nextValueManager;
 
   /**
    * Initializes the key state with the corresponding partition id, so that unique keys are
@@ -51,19 +43,15 @@ public class KeyState implements StateLifecycleListener, KeyGenerator {
    *
    * @param partitionId the partition to determine the key start value
    */
-  public KeyState(int partitionId) {
+  public KeyState(int partitionId, ZeebeDb zeebeDb) {
     keyStartValue = Protocol.encodePartitionId(partitionId, INITIAL_VALUE);
-  }
-
-  @Override
-  public void onOpened(StateController stateController) {
-    keyHandle = stateController.getColumnFamilyHandle(KEY_FAMILY_NAME);
-
-    nextValueManager = new NextValueManager(stateController, keyStartValue);
+    nextValueManager = new NextValueManager(keyStartValue);
+    keyColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.KEY, ZbString.class, ZbLong.class);
   }
 
   @Override
   public long nextKey() {
-    return nextValueManager.getNextValue(keyHandle, LATEST_KEY);
+    return nextValueManager.getNextValue(keyColumnFamily, LATEST_KEY);
   }
 }

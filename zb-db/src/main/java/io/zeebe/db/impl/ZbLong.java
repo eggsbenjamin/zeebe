@@ -42,4 +42,12 @@ public class ZbLong implements ZbKey, ZbValue {
   public void write(MutableDirectBuffer buffer, int offset) {
     buffer.putLong(offset, longValue);
   }
+
+  public boolean isFilled() {
+    return longValue != Long.MIN_VALUE;
+  }
+
+  public long getValue() {
+    return longValue;
+  }
 }

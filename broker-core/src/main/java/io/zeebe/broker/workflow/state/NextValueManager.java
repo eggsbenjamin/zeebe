@@ -17,56 +17,38 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
-
-import io.zeebe.logstreams.state.StateController;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.rocksdb.ColumnFamilyHandle;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbString;
 
 public class NextValueManager {
 
   private static final int INITIAL_VALUE = 0;
 
-  private final StateController rocksDbWrapper;
-  private final MutableDirectBuffer nextValueBuffer;
-
   private final long initialValue;
+  private final ZbString zbString = new ZbString();
 
-  public NextValueManager(StateController rocksDbWrapper) {
-    this(rocksDbWrapper, INITIAL_VALUE);
+  public NextValueManager() {
+    this(INITIAL_VALUE);
   }
 
-  /**
-   * Creates next value manager with state controller and an initial value. The first {@link
-   * #getNextValue(ColumnFamilyHandle, byte[])} call will return initial value + 1.
-   *
-   * @param rocksDbWrapper
-   * @param initialValue initial value to start with
-   */
-  public NextValueManager(StateController rocksDbWrapper, long initialValue) {
-    this.rocksDbWrapper = rocksDbWrapper;
-    nextValueBuffer = new UnsafeBuffer(new byte[Long.BYTES]);
+  public NextValueManager(long initialValue) {
     this.initialValue = initialValue;
   }
 
-  public long getNextValue(ColumnFamilyHandle columnFamilyHandle, byte[] key) {
-    final byte[] generateKeyBytes = nextValueBuffer.byteArray();
-    final int readBytes =
-        rocksDbWrapper.get(
-            columnFamilyHandle, key, 0, key.length, generateKeyBytes, 0, generateKeyBytes.length);
+  public long getNextValue(ColumnFamily<ZbString, ZbLong> columnFamily, String key) {
+    zbString.wrapString(key);
+
+    final ZbLong zbLong = columnFamily.get(zbString);
 
     long previousKey = initialValue;
-    final boolean keyWasFound = readBytes == generateKeyBytes.length;
-    if (keyWasFound) {
-      previousKey = nextValueBuffer.getLong(0, STATE_BYTE_ORDER);
+    if (zbLong.isFilled()) {
+      previousKey = zbLong.getValue();
     }
 
     final long nextKey = previousKey + 1;
-    nextValueBuffer.putLong(0, nextKey, STATE_BYTE_ORDER);
-
-    rocksDbWrapper.put(
-        columnFamilyHandle, key, 0, key.length, generateKeyBytes, 0, generateKeyBytes.length);
+    zbLong.wrapLong(nextKey);
+    columnFamily.put(zbString, zbLong);
 
     return nextKey;
   }

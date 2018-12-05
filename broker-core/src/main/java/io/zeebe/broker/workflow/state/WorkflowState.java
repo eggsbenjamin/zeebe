@@ -20,6 +20,7 @@ package io.zeebe.broker.workflow.state;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbString;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateLifecycleListener;
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
-import org.rocksdb.ColumnFamilyHandle;
 
 public class WorkflowState implements StateLifecycleListener {
 
@@ -48,31 +48,34 @@ public class WorkflowState implements StateLifecycleListener {
         .collect(Collectors.toList());
   }
 
-  private ColumnFamilyHandle workflowVersionHandle;
-  private NextValueManager nextValueManager;
+  // version
+  private final ColumnFamily<ZbString, ZbLong> workflowVersionColumnFamily;
+  private final NextValueManager nextValueManager;
+
+  //
   private WorkflowPersistenceCache workflowPersistenceCache;
   private TimerInstanceState timerInstanceState;
   private ElementInstanceState elementInstanceState;
 
-  private final ColumnFamily<ZbLong, ZbLong> workflowVersionColumnFamily;
-
   public WorkflowState(ZeebeDb zeebeDb) {
     workflowVersionColumnFamily =
         zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_VERSION, ZbLong.class, ZbLong.class);
+    nextValueManager = new NextValueManager();
+
+
+
   }
 
   @Override
   public void onOpened(StateController stateController) {
-    workflowVersionHandle = stateController.getColumnFamilyHandle(WORKFLOW_VERSION_FAMILY_NAME);
 
-    nextValueManager = new NextValueManager(stateController);
     workflowPersistenceCache = new WorkflowPersistenceCache(stateController);
     timerInstanceState = new TimerInstanceState(stateController);
     elementInstanceState = new ElementInstanceState(stateController);
   }
 
   public int getNextWorkflowVersion(String bpmnProcessId) {
-    return (int) nextValueManager.getNextValue(workflowVersionHandle, bpmnProcessId.getBytes());
+    return (int) nextValueManager.getNextValue(workflowVersionColumnFamily, bpmnProcessId);
   }
 
   public boolean putDeployment(long deploymentKey, DeploymentRecord deploymentRecord) {

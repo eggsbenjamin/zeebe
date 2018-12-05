@@ -28,8 +28,6 @@ import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.logstreams.rocksdb.ZbRocksDb;
 import io.zeebe.logstreams.state.StateController;
-import io.zeebe.protocol.Protocol;
-
 import java.io.File;
 import java.util.List;
 
@@ -45,15 +43,8 @@ public class ZeebeState extends StateController {
   private final IncidentState incidentState = new IncidentState();
   private final KeyState keyState;
 
-  public ZeebeState() {
-    this(Protocol.DEPLOYMENT_PARTITION);
-  }
-
-  public ZeebeState(int partitionId) {
-    keyState = new KeyState(partitionId);
-  }
-
-  public ZeebeState(ZeebeDb zeebeDb) {
+  public ZeebeState(int partitionId, ZeebeDb zeebeDb) {
+    keyState = new KeyState(partitionId, zeebeDb);
     workflowState = new WorkflowState(zeebeDb);
 
     workflowState.onOpened(this);
@@ -63,7 +54,6 @@ public class ZeebeState extends StateController {
     messageSubscriptionState.onOpened(this);
     workflowInstanceSubscriptionState.onOpened(this);
     incidentState.onOpened(this);
-    keyState.onOpened(this);
   }
 
   @Override
