@@ -18,118 +18,110 @@
 package io.zeebe.broker.job;
 
 import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
-import static io.zeebe.util.StringUtil.getBytes;
 import static io.zeebe.util.buffer.BufferUtil.contentsEqual;
 
-import io.zeebe.logstreams.rocksdb.ZbRocksDb;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.ZbByte;
+import io.zeebe.db.impl.ZbCompositeKey;
+import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbNil;
+import io.zeebe.db.impl.ZbString;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.logstreams.rocksdb.ZbRocksDb.IteratorControl;
 import io.zeebe.logstreams.rocksdb.ZbWriteBatch;
-import io.zeebe.logstreams.state.StateController;
-import io.zeebe.logstreams.state.StateLifecycleListener;
 import io.zeebe.protocol.impl.record.value.job.JobRecord;
 import io.zeebe.util.EnsureUtil;
 import io.zeebe.util.buffer.BufferWriter;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
-public class JobState implements StateLifecycleListener {
-  private static final byte[] JOBS_COLUMN_FAMILY_NAME = getBytes("jobStateJobs");
-  private static final byte[] STATES_COLUMN_FAMILY_NAME = getBytes("jobStateStates");
-  private static final byte[] DEADLINES_COLUMN_FAMILY_NAME = getBytes("jobStateDeadlines");
-  private static final byte[] ACTIVATABLE_COLUMN_FAMILY_NAME = getBytes("jobStateActivatable");
-  public static final byte[][] COLUMN_FAMILY_NAMES = {
-    JOBS_COLUMN_FAMILY_NAME,
-    STATES_COLUMN_FAMILY_NAME,
-    ACTIVATABLE_COLUMN_FAMILY_NAME,
-    DEADLINES_COLUMN_FAMILY_NAME
-  };
-
-  private static final DirectBuffer NULL = new UnsafeBuffer(new byte[] {0});
+public class JobState {
 
   // key => job record value
-  private ColumnFamilyHandle jobsColumnFamily;
+  private final UnpackedObjectValue jobRecord;
+  private final ZbLong jobKey;
+  private final ColumnFamily<ZbLong, UnpackedObjectValue> jobsColumnFamily;
+
   // key => job state
-  private ColumnFamilyHandle statesColumnFamily;
+  private final ZbByte jobState;
+  private final ColumnFamily<ZbLong, ZbByte> statesJobColumnFamily;
+
   // type => [key]
-  private ColumnFamilyHandle activatableColumnFamily;
+  private final ZbString jobTypeKey;
+  private final ZbCompositeKey<ZbString, ZbLong> typeJobKey;
+  private final ColumnFamily<ZbCompositeKey<ZbString, ZbLong>, ZbNil> activatableColumnFamily;
+
   // timeout => key
-  private ColumnFamilyHandle deadlinesColumnFamily;
+  private final ZbLong deadlineKey;
+  private final ZbCompositeKey<ZbLong, ZbLong> deadlineJobKey;
+  private final ColumnFamily<ZbCompositeKey<ZbLong, ZbLong>, ZbNil> deadlinesColumnFamily;
+  private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
-  private MutableDirectBuffer keyBuffer;
-  private MutableDirectBuffer valueBuffer;
+  public JobState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    jobRecord = new UnpackedObjectValue();
+    jobKey = new ZbLong();
+    jobsColumnFamily = zeebeDb.createColumnFamily(ZbColumnFamilies.JOBS, jobKey, jobRecord);
 
-  private ZbRocksDb db;
+    jobState = new ZbByte();
+    statesJobColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_STATES, jobKey, jobState);
 
-  public static List<byte[]> getColumnFamilyNames() {
-    return Stream.of(COLUMN_FAMILY_NAMES).collect(Collectors.toList());
-  }
+    jobTypeKey = new ZbString();
+    typeJobKey = new ZbCompositeKey<>();
+    activatableColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_ACTIVATABLE, typeJobKey, ZbNil.INSTANCE);
 
-  @Override
-  public void onOpened(StateController stateController) {
-    keyBuffer = new ExpandableArrayBuffer();
-    valueBuffer = new ExpandableArrayBuffer();
+    deadlineKey = new ZbLong();
+    deadlineJobKey = new ZbCompositeKey<>();
+    deadlinesColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.JOB_DEADLINES, deadlineJobKey, ZbNil.INSTANCE);
 
-    db = stateController.getDb();
-
-    jobsColumnFamily = stateController.getColumnFamilyHandle(JOBS_COLUMN_FAMILY_NAME);
-    statesColumnFamily = stateController.getColumnFamilyHandle(STATES_COLUMN_FAMILY_NAME);
-    activatableColumnFamily = stateController.getColumnFamilyHandle(ACTIVATABLE_COLUMN_FAMILY_NAME);
-    deadlinesColumnFamily = stateController.getColumnFamilyHandle(DEADLINES_COLUMN_FAMILY_NAME);
+    this.zeebeDb = zeebeDb;
   }
 
   public void create(final long key, final JobRecord record) {
     final DirectBuffer type = record.getType();
+    zeebeDb.batch(
+        () -> {
+          jobKey.wrapLong(key);
+          jobRecord.wrapObject(record);
+          jobsColumnFamily.put(jobKey, jobRecord);
 
-    try (WriteOptions options = new WriteOptions();
-        ZbWriteBatch batch = new ZbWriteBatch()) {
-      DirectBuffer keyBuffer = getDefaultKey(key);
-      DirectBuffer valueBuffer = writeValue(record);
-      batch.put(jobsColumnFamily, keyBuffer, valueBuffer);
+          jobState.wrapByte(State.ACTIVATABLE.value);
+          statesJobColumnFamily.put(jobKey, jobState);
 
-      valueBuffer = writeStatesValue(State.ACTIVATABLE);
-      batch.put(statesColumnFamily, keyBuffer, valueBuffer);
-
-      keyBuffer = getActivatableKey(key, type);
-      batch.put(activatableColumnFamily, keyBuffer, NULL);
-
-      db.write(options, batch);
-    } catch (RocksDBException e) {
-      throw new RuntimeException(e);
-    }
+          jobTypeKey.wrapBuffer(type);
+          typeJobKey.wrapKeys(jobTypeKey, jobKey);
+          activatableColumnFamily.put(typeJobKey, ZbNil.INSTANCE);
+        });
   }
 
   public void activate(final long key, final JobRecord record) {
     final DirectBuffer type = record.getType();
     final long deadline = record.getDeadline();
 
-    try (WriteOptions options = new WriteOptions();
-        ZbWriteBatch batch = new ZbWriteBatch()) {
-      DirectBuffer keyBuffer = getDefaultKey(key);
-      DirectBuffer valueBuffer = writeValue(record);
-      batch.put(jobsColumnFamily, keyBuffer, valueBuffer);
+    zeebeDb.batch(
+        () -> {
+          jobKey.wrapLong(key);
+          jobRecord.wrapObject(record);
+          // why i need to update this?!
+          jobsColumnFamily.put(jobKey, jobRecord);
 
-      valueBuffer = writeStatesValue(State.ACTIVATED);
-      batch.put(statesColumnFamily, keyBuffer, valueBuffer);
+          jobState.wrapByte(State.ACTIVATED.value);
+          statesJobColumnFamily.put(jobKey, jobState);
 
-      keyBuffer = getActivatableKey(key, type);
-      batch.delete(activatableColumnFamily, keyBuffer);
+          jobTypeKey.wrapBuffer(type);
+          typeJobKey.wrapKeys(jobTypeKey, jobKey);
+          activatableColumnFamily.delete(typeJobKey);
 
-      keyBuffer = getDeadlinesKey(key, deadline);
-      batch.put(deadlinesColumnFamily, keyBuffer, NULL);
-
-      db.write(options, batch);
-    } catch (RocksDBException e) {
-      throw new RuntimeException(e);
-    }
+          deadlineKey.wrapLong(deadline);
+          deadlineJobKey.wrapKeys(deadlineKey, jobKey);
+          deadlinesColumnFamily.put(deadlineJobKey, ZbNil.INSTANCE);
+        });
   }
 
   public void timeout(final long key, final JobRecord record) {
