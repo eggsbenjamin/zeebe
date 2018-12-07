@@ -22,7 +22,7 @@ import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
-public class TriggerEventHandler implements BpmnStepHandler<ExecutableCatchEventElement> {
+public class TriggerReceiveTaskHandler implements BpmnStepHandler<ExecutableCatchEventElement> {
 
   @Override
   public void handle(BpmnStepContext<ExecutableCatchEventElement> context) {
@@ -31,7 +31,7 @@ public class TriggerEventHandler implements BpmnStepHandler<ExecutableCatchEvent
         .getOutput()
         .appendFollowUpEvent(
             context.getRecord().getKey(),
-            WorkflowInstanceIntent.EVENT_TRIGGERING,
+            WorkflowInstanceIntent.ELEMENT_COMPLETING,
             context.getValue());
   }
 }

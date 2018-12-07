@@ -22,10 +22,13 @@ import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
-public class TriggerEventHandler implements BpmnStepHandler<ExecutableCatchEventElement> {
+public class TriggerEventBasedGateway
+    implements BpmnStepHandler<ExecutableCatchEventElement> {
 
   @Override
   public void handle(BpmnStepContext<ExecutableCatchEventElement> context) {
+
+    context.getCatchEventOutput().unsubscribeFromCatchEvents(context.getRecord().getKey(), context);
 
     context
         .getOutput()

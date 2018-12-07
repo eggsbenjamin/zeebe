@@ -30,17 +30,17 @@ public class PropagateTerminationHandler implements BpmnStepHandler<ExecutableFl
     final EventOutput output = context.getOutput();
     final ElementInstance flowScopeInstance = context.getFlowScopeInstance();
 
-    if (flowScopeInstance.getNumberOfActiveElementInstances() == 0) {
-      if (flowScopeInstance.isInterrupted()) {
-        context
-            .getCatchEventOutput()
-            .triggerInterruptedElement(flowScopeInstance, context.getOutput().getStreamWriter());
-      }
+    context.getCatchEventOutput().triggerDeferredEvent(context);
+
+    if (flowScopeInstance.getNumberOfActiveExecutionPaths() == 0) {
 
       output.appendFollowUpEvent(
           flowScopeInstance.getKey(),
           WorkflowInstanceIntent.ELEMENT_TERMINATED,
           flowScopeInstance.getValue());
+
+    } else if (flowScopeInstance.getNumberOfActiveElementInstances() < 0) {
+      throw new IllegalStateException("number of active execution paths is negative");
     }
   }
 }

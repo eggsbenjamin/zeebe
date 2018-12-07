@@ -46,7 +46,6 @@ import io.zeebe.util.buffer.BufferUtil;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -108,11 +107,6 @@ public class WorkflowInstanceStreamProcessorTest {
   @Before
   public void setUp() {
     streamProcessor = streamProcessorRule.getStreamProcessor();
-  }
-
-  @After
-  public void foo() {
-    envRule.printAllRecords();
   }
 
   @Test
@@ -565,6 +559,8 @@ public class WorkflowInstanceStreamProcessorTest {
     streamProcessor.blockAfterJobEvent(r -> r.getMetadata().getIntent() == JobIntent.CREATED);
     streamProcessorRule.createWorkflowInstance(PROCESS_ID);
 
+    waitUntil(() -> streamProcessor.isBlocked());
+
     // when
     final TypedRecord<TimerRecord> timerRecord =
         streamProcessorRule.awaitTimerInState("timer1", TimerIntent.CREATED);
@@ -616,6 +612,8 @@ public class WorkflowInstanceStreamProcessorTest {
             r.getMetadata().getIntent() == WorkflowInstanceIntent.ELEMENT_ACTIVATED
                 && r.getValue().getElementId().equals(wrapString("task")));
     streamProcessorRule.createWorkflowInstance(PROCESS_ID);
+
+    waitUntil(() -> streamProcessor.isBlocked());
 
     // when
     final TypedRecord<TimerRecord> timer1Record =

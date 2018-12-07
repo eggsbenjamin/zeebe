@@ -441,6 +441,7 @@ public class EmbeddedSubProcessTest {
     assertThat(workflowInstanceEvents)
         .extracting(e -> e.getMetadata().getIntent(), e -> e.getValue().getElementId())
         .containsExactly(
+            tuple(WorkflowInstanceIntent.EVENT_OCCURRED, "event"),
             tuple(WorkflowInstanceIntent.ELEMENT_TERMINATING, "outerSubProcess"),
             tuple(WorkflowInstanceIntent.ELEMENT_TERMINATING, "innerSubProcess"),
             tuple(WorkflowInstanceIntent.ELEMENT_TERMINATING, "task"),

@@ -61,12 +61,8 @@ public class TerminateContainedElementsHandler
 
     final List<ElementInstance> children =
         elementInstanceState.getChildren(elementInstance.getKey());
+
     if (children.isEmpty()) {
-      if (elementInstance.isInterrupted()) {
-        context
-            .getCatchEventOutput()
-            .triggerInterruptedElement(elementInstance, output.getStreamWriter());
-      }
 
       elementInstanceState.visitFailedTokens(
           elementInstance.getKey(),
@@ -79,6 +75,9 @@ public class TerminateContainedElementsHandler
           context.getRecord().getKey(),
           WorkflowInstanceIntent.ELEMENT_TERMINATED,
           context.getValue());
+
+      context.getCatchEventOutput().triggerDeferredEvent(context);
+
     } else {
       for (final ElementInstance child : children) {
         if (child.canTerminate()) {

@@ -20,6 +20,7 @@ package io.zeebe.broker.workflow.processor;
 import io.zeebe.broker.logstreams.processor.TypedCommandWriter;
 import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.logstreams.processor.TypedStreamWriter;
+import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.workflow.model.element.ExecutableFlowElement;
 import io.zeebe.broker.workflow.state.ElementInstance;
 import io.zeebe.msgpack.mapping.MsgPackMergeTool;
@@ -36,6 +37,7 @@ public class BpmnStepContext<T extends ExecutableFlowElement> {
   private final EventOutput eventOutput;
   private final MsgPackMergeTool mergeTool;
   private final CatchEventOutput catchEventOutput;
+  private final ZeebeState zeebeState;
 
   private TypedRecord<WorkflowInstanceRecord> record;
   private ExecutableFlowElement element;
@@ -44,10 +46,12 @@ public class BpmnStepContext<T extends ExecutableFlowElement> {
   private ElementInstance flowScopeInstance;
   private ElementInstance elementInstance;
 
-  public BpmnStepContext(EventOutput eventOutput, CatchEventOutput catchEventOutput) {
+  public BpmnStepContext(
+      EventOutput eventOutput, CatchEventOutput catchEventOutput, ZeebeState zeebeState) {
     this.eventOutput = eventOutput;
     this.mergeTool = new MsgPackMergeTool(4096);
     this.catchEventOutput = catchEventOutput;
+    this.zeebeState = zeebeState;
   }
 
   public TypedRecord<WorkflowInstanceRecord> getRecord() {
@@ -130,5 +134,9 @@ public class BpmnStepContext<T extends ExecutableFlowElement> {
 
     eventOutput.storeFailedToken(record);
     commandWriter.appendNewCommand(IncidentIntent.CREATE, incidentCommand);
+  }
+
+  public ZeebeState getZeebeState() {
+    return zeebeState;
   }
 }
