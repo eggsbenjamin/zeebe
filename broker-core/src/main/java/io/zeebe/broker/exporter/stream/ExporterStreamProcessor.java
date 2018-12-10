@@ -40,7 +40,6 @@ import io.zeebe.protocol.impl.record.RecordMetadata;
 import io.zeebe.protocol.intent.ExporterIntent;
 import io.zeebe.util.buffer.BufferUtil;
 import io.zeebe.util.sched.ActorControl;
-import io.zeebe.util.sched.ActorThread;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -161,21 +160,13 @@ public class ExporterStreamProcessor implements StreamProcessor {
 
     @Override
     public void updateLastExportedRecordPosition(final long position) {
-      final ActorThread currentThread = ActorThread.current();
-
-      if (currentThread != null
-          && actorControl.isCalledFromWithinActor(currentThread.getCurrentJob())) {
-        setLastExporterRecordPosition(position);
-      } else {
-        actorControl.run(() -> setLastExporterRecordPosition(position));
-      }
-    }
-
-    private void setLastExporterRecordPosition(long position) {
-      if (state.isOpened()) {
-        state.setPosition(getId(), position);
-      }
-      this.position = position;
+      actorControl.run(
+          () -> {
+            if (state.isOpened()) {
+              state.setPosition(getId(), position);
+            }
+            this.position = position;
+          });
     }
 
     @Override

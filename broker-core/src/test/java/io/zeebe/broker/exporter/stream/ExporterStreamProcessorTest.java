@@ -79,7 +79,6 @@ import io.zeebe.protocol.intent.WorkflowInstanceSubscriptionIntent;
 import io.zeebe.raft.event.RaftConfigurationEvent;
 import io.zeebe.test.util.TestUtil;
 import io.zeebe.util.buffer.BufferUtil;
-import io.zeebe.util.sched.Actor;
 import io.zeebe.util.sched.ActorControl;
 import java.time.Duration;
 import java.time.Instant;
@@ -687,7 +686,7 @@ public class ExporterStreamProcessorTest {
   }
 
   @Test
-  public void shouldUpdatePositionOnCloseIfCalledFromActorThread() {
+  public void shouldUpdateLastExportedPositionOnClose() {
     // given
     final List<ExporterDescriptor> descriptors = createMockedExporters(1);
     final ExporterStreamProcessor processor =
@@ -705,94 +704,21 @@ public class ExporterStreamProcessorTest {
     TestUtil.waitUntil(() -> exporter.getExportedRecords().size() == 1);
     control.close();
 
-    final long highestPosition = writeEvent();
-    control.blockAfterEvent(e -> e.getPosition() == highestPosition);
+    // then
+    assertThat(exporter.getExportedRecords()).hasSize(1);
+    assertThat(exporter.getExportedRecords().get(0).getPosition()).isEqualTo(firstPosition);
+
+    // when
+    final long secondPosition = writeEvent();
+    control.blockAfterEvent(e -> e.getPosition() == secondPosition);
     control.start();
     TestUtil.waitUntil(control::isBlocked);
 
     // then
-    assertThat(exporter.getExportedRecords()).hasSize(2);
-  }
-
-  @Test
-  public void shouldNotUpdatePositionOnCloseIfNotCalledFromSameActor() {
-    // given
-    final List<ExporterDescriptor> descriptors = createMockedExporters(1);
-    final ExporterStreamProcessor processor =
-        new ExporterStreamProcessor(PARTITION_ID, descriptors);
-    final ControlledTestExporter exporter = exporters.get(0);
-    exporter.shouldAutoUpdatePosition(false);
-
-    final DummyActor actor = new DummyActor();
-    rule.getActorScheduler().submitActor(Actor.wrap(actor));
-    TestUtil.waitUntil(() -> actor.ctrl != null);
-
-    // when
-    final long firstPosition = writeEvent();
-    final StreamProcessorControl control =
-        rule.initStreamProcessor(processor::getStateController, e -> processor);
-    final CountDownLatch latch = new CountDownLatch(1);
-
-    exporter.onClose(
-        () ->
-            actor.ctrl.run(
-                () -> {
-                  exporter.getController().updateLastExportedRecordPosition(firstPosition);
-                  latch.countDown();
-                }));
-
-    assertEventWasReprocessed(exporter, firstPosition, control, latch);
-  }
-
-  @Test
-  public void shouldNotUpdatePositionIfNotCalledFromActorThread() {
-    // given
-    final List<ExporterDescriptor> descriptors = createMockedExporters(1);
-    final ExporterStreamProcessor processor =
-        new ExporterStreamProcessor(PARTITION_ID, descriptors);
-    final ControlledTestExporter exporter = exporters.get(0);
-    exporter.shouldAutoUpdatePosition(false);
-
-    // when
-    final long firstPosition = writeEvent();
-    final StreamProcessorControl control =
-        rule.initStreamProcessor(processor::getStateController, e -> processor);
-    final CountDownLatch latch = new CountDownLatch(1);
-
-    exporter.onClose(
-        () ->
-            new Thread(
-                    () -> {
-                      exporter.getController().updateLastExportedRecordPosition(firstPosition);
-                      latch.countDown();
-                    })
-                .start());
-
-    assertEventWasReprocessed(exporter, firstPosition, control, latch);
-  }
-
-  private void assertEventWasReprocessed(
-      ControlledTestExporter exporter,
-      long firstPosition,
-      StreamProcessorControl control,
-      CountDownLatch latch) {
-
-    // when
-    control.start();
-    TestUtil.waitUntil(() -> exporter.getExportedRecords().size() == 1);
-    control.close();
-    try {
-      latch.await(5, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    control.blockAfterEvent(e -> e.getPosition() == firstPosition);
-    control.start();
-    TestUtil.waitUntil(control::isBlocked);
-
-    // then
-    assertThat(exporter.getExportedRecords()).hasSize(2);
+    final List<Record> records = exporter.getExportedRecords();
+    assertThat(records).hasSize(2);
+    assertThat(records.get(0).getPosition()).isEqualTo(firstPosition);
+    assertThat(records.get(1).getPosition()).isEqualTo(secondPosition);
   }
 
   private ExporterStreamProcessor createStreamProcessor(final int count) {

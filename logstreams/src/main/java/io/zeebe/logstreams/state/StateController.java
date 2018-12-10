@@ -273,9 +273,20 @@ public class StateController implements AutoCloseable {
 
       // on Windows, destroyDB does not remove the directory but simply clears the contents
       if (dbDirectory.exists()) {
-        dbDirectory.delete();
+        deleteFile(dbDirectory);
       }
     }
+  }
+
+  private void deleteFile(final File file) {
+    final File[] contents = file.listFiles();
+    if (contents != null) {
+      for (File contentFile : contents) {
+        deleteFile(contentFile);
+      }
+    }
+
+    file.delete();
   }
 
   @Override

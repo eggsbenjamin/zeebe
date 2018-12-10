@@ -443,13 +443,19 @@ public class StreamProcessorController extends Actor {
     metrics.close();
 
     if (!isFailed()) {
-      streamProcessor.onClose();
-      createSnapshot();
+      // since actor.run() makes the task the next executed job, we first schedule the state closing
+      // and then the update of the last exported record (the actual execution of the tasks will be
+      // the opposite)
+      actor.run(
+          () -> {
+            createSnapshot();
+            final StateController stateController = streamProcessor.getStateController();
+            if (stateController != null) {
+              stateController.close();
+            }
+          });
 
-      final StateController stateController = streamProcessor.getStateController();
-      if (stateController != null) {
-        stateController.close();
-      }
+      streamProcessor.onClose();
     }
 
     streamProcessorContext.getLogStreamReader().close();
