@@ -70,7 +70,7 @@ public class JobBatchActivateProcessor implements TypedRecordProcessor<JobBatchR
     final AtomicInteger amount = new AtomicInteger(value.getAmount());
     state.forEachActivatableJobs(
         value.getType(),
-        (key, jobRecord, control) -> {
+        (key, jobRecord) -> {
           final int remainingAmount = amount.decrementAndGet();
           if (remainingAmount >= 0) {
             final long deadline = currentTimeMillis() + value.getTimeout();
@@ -90,9 +90,7 @@ public class JobBatchActivateProcessor implements TypedRecordProcessor<JobBatchR
             streamWriter.appendFollowUpEvent(key, JobIntent.ACTIVATED, job);
           }
 
-          if (remainingAmount < 1) {
-            control.stop();
-          }
+          return remainingAmount < 1;
         });
 
     streamWriter.appendFollowUpEvent(jobBatchKey, JobBatchIntent.ACTIVATED, value);

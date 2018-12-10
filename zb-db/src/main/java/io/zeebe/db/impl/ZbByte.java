@@ -28,4 +28,8 @@ public class ZbByte implements ZbKey, ZbValue {
   public void write(MutableDirectBuffer mutableDirectBuffer, int offset) {
     mutableDirectBuffer.putByte(offset, value);
   }
+
+  public byte getValue() {
+    return value;
+  }
 }

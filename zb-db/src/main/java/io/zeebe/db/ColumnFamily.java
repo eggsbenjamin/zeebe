@@ -39,5 +39,9 @@ public interface ColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue> 
 
   void whileEqualPrefix(ZbKey keyPrefix, BiConsumer<KeyType, ValueType> consumer);
 
+  void whileEqualPrefix(ZbKey keyPrefix, BiFunction<KeyType, ValueType, Boolean> consumer);
+
   void delete(KeyType dueDateAndElementInstanceKeyTimerKey);
+
+  boolean exists(KeyType jobKey);
 }

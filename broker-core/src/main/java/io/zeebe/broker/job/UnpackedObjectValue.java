@@ -28,4 +28,8 @@ public class UnpackedObjectValue implements ZbValue {
   public void write(MutableDirectBuffer buffer, int offset) {
     value.write(buffer, offset);
   }
+
+  public UnpackedObject getObject() {
+    return value;
+  }
 }

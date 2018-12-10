@@ -422,14 +422,14 @@ public class JobStateTest {
   private List<Long> getActivatableKeys(final DirectBuffer type) {
     final List<Long> activatableKeys = new ArrayList<>();
 
-    stateController.forEachActivatableJobs(type, (k, e, c) -> activatableKeys.add(k));
+    stateController.forEachActivatableJobs(type, (k, e) -> activatableKeys.add(k));
     return activatableKeys;
   }
 
   private List<Long> getTimedOutKeys(final long since) {
     final List<Long> timedOutKeys = new ArrayList<>();
 
-    stateController.forEachTimedOutEntry(since, (k, e, c) -> timedOutKeys.add(k));
+    stateController.forEachTimedOutEntry(since, (k, e) -> timedOutKeys.add(k));
     return timedOutKeys;
   }
 }

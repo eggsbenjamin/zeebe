@@ -59,4 +59,9 @@ public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValu
 
   @Override
   public void delete(KeyType key) {}
+
+  @Override
+  public boolean exists(KeyType jobKey) {
+    return false;
+  }
 }
