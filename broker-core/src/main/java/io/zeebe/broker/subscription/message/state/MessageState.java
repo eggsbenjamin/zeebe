@@ -17,302 +17,226 @@
  */
 package io.zeebe.broker.subscription.message.state;
 
-import static io.zeebe.broker.workflow.state.PersistenceHelper.EXISTENCE;
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
-
-import io.zeebe.logstreams.rocksdb.ZbRocksDb;
-import io.zeebe.logstreams.rocksdb.ZbWriteBatch;
-import io.zeebe.logstreams.state.StateController;
-import io.zeebe.logstreams.state.StateLifecycleListener;
-import java.util.Arrays;
-import java.util.List;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
+import io.zeebe.db.impl.ZbCompositeKey;
+import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.impl.ZbNil;
+import io.zeebe.db.impl.ZbString;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.WriteOptions;
 
-public class MessageState implements StateLifecycleListener {
-
-  private static final byte[] MESSAGE_KEY_COLUMN_FAMILY_NAME = "messageStateMessageKey".getBytes();
-  private static final byte[] MESSAGE_COLUMN_FAMILY_NAME = "messageStateMessages".getBytes();
-  private static final byte[] DEADLINE_COLUMN_FAMILY_NAME = "messageStateDeadlines".getBytes();
-  private static final byte[] MESSAGE_ID_COLUMN_FAMILY_NAME = "messageStateMessageIds".getBytes();
-  private static final byte[] CORRELATED_MESSAGE_COLUMN_FAMILY_NAME =
-      "correlatedMessages".getBytes();
-
-  public static final byte[][] COLUMN_FAMILY_NAMES = {
-    MESSAGE_KEY_COLUMN_FAMILY_NAME,
-    MESSAGE_COLUMN_FAMILY_NAME,
-    DEADLINE_COLUMN_FAMILY_NAME,
-    MESSAGE_ID_COLUMN_FAMILY_NAME,
-    CORRELATED_MESSAGE_COLUMN_FAMILY_NAME
-  };
-  public static final String SUB_SUFFIX = "Message";
-
-  private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
-  private final ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
-  private final UnsafeBuffer iterateKeyBuffer = new UnsafeBuffer(0, 0);
-
-  private final Message message = new Message();
+public class MessageState {
 
   /**
    * <pre>message key -> message
    */
-  private ColumnFamilyHandle messageKeyColumnFamily;
+  private final ColumnFamily<ZbLong, Message> messageColumnFamily;
+
+  private final ZbLong messageKey;
+  private final Message message;
+
   /**
    * <pre>name | correlation key | key -> []
    *
    * find message by name and correlation key - the message key ensures the queue ordering
    */
-  private ColumnFamilyHandle messageColumnFamily;
+  private final ZbString messageName;
+
+  private final ZbString correlationKey;
+  private final ZbCompositeKey<ZbCompositeKey<ZbString, ZbString>, ZbLong>
+      nameCorrelationMessageKey;
+  private final ZbCompositeKey<ZbString, ZbString> nameAndCorrelationKey;
+  private final ColumnFamily<ZbCompositeKey<ZbCompositeKey<ZbString, ZbString>, ZbLong>, ZbNil>
+      nameCorrelationMessageColumnFamily;
+
   /**
    * <pre>deadline | key -> []
    *
    * find messages which are before a given timestamp */
-  private ColumnFamilyHandle deadlineColumnFamily;
+  private final ZbLong deadline;
+
+  private final ZbCompositeKey<ZbLong, ZbLong> deadlineMessageKey;
+  private final ColumnFamily<ZbCompositeKey<ZbLong, ZbLong>, ZbNil> deadlineColumnFamily;
+
   /**
    * <pre>name | correlation key | message id -> []
    *
    * exist a message for a given message name, correlation key and message id */
-  private ColumnFamilyHandle messageIdColumnFamily;
+  private final ZbString messageId;
+
+  private final ZbCompositeKey<ZbCompositeKey<ZbString, ZbString>, ZbString>
+      nameCorrelationMessageIdKey;
+  private final ColumnFamily<ZbCompositeKey<ZbCompositeKey<ZbString, ZbString>, ZbString>, ZbNil>
+      messageIdColumnFamily;
+
   /**
    * <pre>key | workflow instance key -> []
    *
    * check if a message is correlated to a workflow instance */
-  private ColumnFamilyHandle correlatedMessageColumnFamily;
+  private final ZbCompositeKey<ZbLong, ZbLong> messageWorkflowKey;
 
-  private ZbRocksDb db;
+  private final ZbLong workflowInstanceKey;
+  private final ColumnFamily<ZbCompositeKey<ZbLong, ZbLong>, ZbNil> correlatedMessageColumnFamily;
 
-  public static List<byte[]> getColumnFamilyNames() {
-    return Arrays.asList(COLUMN_FAMILY_NAMES);
-  }
+  private final ZeebeDb<ZbColumnFamilies> zeebeDb;
 
-  @Override
-  public void onOpened(StateController stateController) {
-    db = stateController.getDb();
+  public MessageState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    messageKey = new ZbLong();
+    message = new Message();
+    messageColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.MESSAGE_KEY, messageKey, message);
 
-    messageKeyColumnFamily = stateController.getColumnFamilyHandle(MESSAGE_KEY_COLUMN_FAMILY_NAME);
-    messageColumnFamily = stateController.getColumnFamilyHandle(MESSAGE_COLUMN_FAMILY_NAME);
-    deadlineColumnFamily = stateController.getColumnFamilyHandle(DEADLINE_COLUMN_FAMILY_NAME);
-    messageIdColumnFamily = stateController.getColumnFamilyHandle(MESSAGE_ID_COLUMN_FAMILY_NAME);
+    messageName = new ZbString();
+    correlationKey = new ZbString();
+    nameAndCorrelationKey = new ZbCompositeKey<>();
+    nameCorrelationMessageKey = new ZbCompositeKey<>();
+    nameCorrelationMessageColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.MESSAGES, nameCorrelationMessageKey, ZbNil.INSTANCE);
+
+    deadline = new ZbLong();
+    deadlineMessageKey = new ZbCompositeKey<>();
+    deadlineColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.MESSAGE_DEADLINES, deadlineMessageKey, ZbNil.INSTANCE);
+
+    messageId = new ZbString();
+    nameCorrelationMessageIdKey = new ZbCompositeKey<>();
+    messageIdColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.MESSAGE_IDS, nameCorrelationMessageIdKey, ZbNil.INSTANCE);
+
+    messageWorkflowKey = new ZbCompositeKey<>();
+    workflowInstanceKey = new ZbLong();
     correlatedMessageColumnFamily =
-        stateController.getColumnFamilyHandle(CORRELATED_MESSAGE_COLUMN_FAMILY_NAME);
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.MESSAGE_CORRELATED, messageWorkflowKey, ZbNil.INSTANCE);
+
+    this.zeebeDb = zeebeDb;
   }
 
   public void put(final Message message) {
-    try (WriteOptions options = new WriteOptions();
-        ZbWriteBatch batch = new ZbWriteBatch()) {
+    zeebeDb.batch(
+        () -> {
+          messageKey.wrapLong(message.getKey());
+          messageColumnFamily.put(messageKey, message);
 
-      message.write(valueBuffer, 0);
-      batch.put(
-          messageKeyColumnFamily, message.getKey(), valueBuffer.byteArray(), message.getLength());
+          messageName.wrapBuffer(message.getName());
+          correlationKey.wrapBuffer(message.getCorrelationKey());
+          nameAndCorrelationKey.wrapKeys(messageName, correlationKey);
 
-      int length = writeMessageKey(keyBuffer, message);
-      batch.put(messageColumnFamily, keyBuffer.byteArray(), length, EXISTENCE, EXISTENCE.length);
+          nameCorrelationMessageKey.wrapKeys(nameAndCorrelationKey, messageKey);
+          nameCorrelationMessageColumnFamily.put(nameCorrelationMessageKey, ZbNil.INSTANCE);
 
-      length = writeDeadlineKey(keyBuffer, message);
-      batch.put(deadlineColumnFamily, keyBuffer.byteArray(), length, EXISTENCE, EXISTENCE.length);
+          deadline.wrapLong(message.getDeadline());
+          deadlineMessageKey.wrapKeys(deadline, messageKey);
+          deadlineColumnFamily.put(deadlineMessageKey, ZbNil.INSTANCE);
 
-      if (message.getId().capacity() > 0) {
-        length =
-            writeMessageIdKey(
-                keyBuffer, message.getName(), message.getCorrelationKey(), message.getId());
-        batch.put(
-            messageIdColumnFamily, keyBuffer.byteArray(), length, EXISTENCE, EXISTENCE.length);
-      }
-
-      db.write(options, batch);
-    } catch (RocksDBException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private int writeMessageKey(MutableDirectBuffer buffer, final Message message) {
-    int offset = 0;
-
-    final DirectBuffer name = message.getName();
-    buffer.putBytes(offset, name, 0, name.capacity());
-    offset += name.capacity();
-
-    final DirectBuffer correlationKey = message.getCorrelationKey();
-    buffer.putBytes(offset, correlationKey, 0, correlationKey.capacity());
-    offset += correlationKey.capacity();
-
-    buffer.putLong(offset, message.getKey(), STATE_BYTE_ORDER);
-    offset += Long.BYTES;
-
-    assert (name.capacity() + correlationKey.capacity() + Long.BYTES) == offset
-        : "Offset problem: offset is not equal to expected key length";
-    return offset;
-  }
-
-  private int writeDeadlineKey(MutableDirectBuffer buffer, final Message message) {
-    int offset = 0;
-
-    buffer.putLong(0, message.getDeadline(), STATE_BYTE_ORDER);
-    offset += Long.BYTES;
-
-    buffer.putLong(offset, message.getKey(), STATE_BYTE_ORDER);
-    offset += Long.BYTES;
-
-    assert (2 * Long.BYTES) == offset
-        : "Offset problem: offset is not equal to expected key length";
-    return offset;
-  }
-
-  private int writeMessageIdKey(
-      MutableDirectBuffer buffer,
-      final DirectBuffer name,
-      final DirectBuffer correlationKey,
-      final DirectBuffer messageId) {
-    int offset = 0;
-
-    buffer.putBytes(offset, name, 0, name.capacity());
-    offset += name.capacity();
-    buffer.putBytes(offset, correlationKey, 0, correlationKey.capacity());
-    offset += correlationKey.capacity();
-
-    buffer.putBytes(offset, messageId, 0, messageId.capacity());
-    offset += messageId.capacity();
-    return offset;
-  }
-
-  private int writeCorrelatedMessageKey(
-      MutableDirectBuffer buffer, long messageKey, long workflowInstanceKey) {
-    int offset = 0;
-
-    buffer.putLong(offset, messageKey, STATE_BYTE_ORDER);
-    offset += Long.BYTES;
-
-    buffer.putLong(offset, workflowInstanceKey, STATE_BYTE_ORDER);
-    offset += Long.BYTES;
-    return offset;
+          final DirectBuffer messageId = message.getId();
+          if (messageId.capacity() > 0) {
+            this.messageId.wrapBuffer(messageId);
+            nameCorrelationMessageIdKey.wrapKeys(nameAndCorrelationKey, this.messageId);
+            messageIdColumnFamily.put(nameCorrelationMessageIdKey, ZbNil.INSTANCE);
+          }
+        });
   }
 
   public void putMessageCorrelation(long messageKey, long workflowInstanceKey) {
-    final int length = writeCorrelatedMessageKey(keyBuffer, messageKey, workflowInstanceKey);
-    db.put(
-        correlatedMessageColumnFamily,
-        keyBuffer.byteArray(),
-        0,
-        length,
-        EXISTENCE,
-        0,
-        EXISTENCE.length);
+    this.messageKey.wrapLong(messageKey);
+    this.workflowInstanceKey.wrapLong(workflowInstanceKey);
+    messageWorkflowKey.wrapKeys(this.messageKey, this.workflowInstanceKey);
+    correlatedMessageColumnFamily.put(messageWorkflowKey, ZbNil.INSTANCE);
   }
 
   public boolean existMessageCorrelation(long messageKey, long workflowInstanceKey) {
-    final int length = writeCorrelatedMessageKey(keyBuffer, messageKey, workflowInstanceKey);
-    return db.exists(correlatedMessageColumnFamily, keyBuffer.byteArray(), 0, length);
+    this.messageKey.wrapLong(messageKey);
+    this.workflowInstanceKey.wrapLong(workflowInstanceKey);
+    messageWorkflowKey.wrapKeys(this.messageKey, this.workflowInstanceKey);
+
+    return correlatedMessageColumnFamily.exists(messageWorkflowKey);
   }
 
   public void visitMessages(
       final DirectBuffer name, final DirectBuffer correlationKey, final MessageVisitor visitor) {
-    int offset = 0;
-    final int prefixLength = name.capacity() + correlationKey.capacity();
-    final MutableDirectBuffer prefixBuffer = new UnsafeBuffer(new byte[prefixLength]);
 
-    prefixBuffer.putBytes(offset, name, 0, name.capacity());
-    offset += name.capacity();
+    messageName.wrapBuffer(name);
+    this.correlationKey.wrapBuffer(correlationKey);
+    nameAndCorrelationKey.wrapKeys(messageName, this.correlationKey);
 
-    prefixBuffer.putBytes(offset, correlationKey, 0, correlationKey.capacity());
-
-    db.forEachPrefixed(
-        messageColumnFamily,
-        prefixBuffer,
-        (entry, control) -> {
-          iterateKeyBuffer.wrap(entry.getKey());
-
-          final long messageKey = iterateKeyBuffer.getLong(prefixLength, STATE_BYTE_ORDER);
-          readMessage(messageKey, message);
-
-          final boolean visited = visitor.visit(message);
-          if (!visited) {
-            control.stop();
-          }
+    nameCorrelationMessageColumnFamily.whileEqualPrefix(
+        nameAndCorrelationKey,
+        (compositeKey, nil) -> {
+          final long messageKey = compositeKey.getSecond().getValue();
+          final Message message = getMessage(messageKey);
+          return visitor.visit(message);
         });
   }
 
-  private boolean readMessage(long key, Message message) {
-    final int readBytes = db.get(messageKeyColumnFamily, key, valueBuffer);
-
-    if (readBytes > 0) {
-      message.wrap(valueBuffer, 0, readBytes);
-      return true;
-    } else {
-      return false;
-    }
+  private Message getMessage(long messageKey) {
+    this.messageKey.wrapLong(messageKey);
+    return messageColumnFamily.get(this.messageKey);
   }
 
   public void visitMessagesWithDeadlineBefore(final long timestamp, MessageVisitor visitor) {
-
-    db.forEach(
-        deadlineColumnFamily,
-        (entry, control) -> {
-          iterateKeyBuffer.wrap(entry.getKey());
-          final long deadline = iterateKeyBuffer.getLong(0, STATE_BYTE_ORDER);
-
-          boolean visited = false;
+    deadlineColumnFamily.whileTrue(
+        ((compositeKey, zbNil) -> {
+          final long deadline = compositeKey.getFirst().getValue();
           if (deadline <= timestamp) {
-            final long messageKey = iterateKeyBuffer.getLong(Long.BYTES, STATE_BYTE_ORDER);
-
-            readMessage(messageKey, message);
-            visited = visitor.visit(message);
+            final long messageKey = compositeKey.getSecond().getValue();
+            final Message message = getMessage(messageKey);
+            return visitor.visit(message);
           }
-          if (!visited) {
-            control.stop();
-          }
-        });
+          return false;
+        }));
   }
 
   public boolean exist(
       final DirectBuffer name, final DirectBuffer correlationKey, final DirectBuffer messageId) {
-    final int length = writeMessageIdKey(keyBuffer, name, correlationKey, messageId);
+    messageName.wrapBuffer(name);
+    this.correlationKey.wrapBuffer(correlationKey);
+    nameAndCorrelationKey.wrapKeys(messageName, this.correlationKey);
+    this.messageId.wrapBuffer(messageId);
+    nameCorrelationMessageIdKey.wrapKeys(nameAndCorrelationKey, this.messageId);
 
-    return db.exists(messageIdColumnFamily, keyBuffer.byteArray(), 0, length);
+    return messageIdColumnFamily.exists(nameCorrelationMessageIdKey);
   }
 
   public void remove(final long key) {
-    final boolean exist = readMessage(key, message);
-    if (!exist) {
+    final Message message = getMessage(key);
+    if (message == null) {
       return;
     }
 
-    try (WriteOptions options = new WriteOptions();
-        ZbWriteBatch batch = new ZbWriteBatch()) {
+    zeebeDb.batch(
+        () -> {
+          messageKey.wrapLong(message.getKey());
+          messageColumnFamily.delete(messageKey);
 
-      batch.delete(messageKeyColumnFamily, key);
+          messageName.wrapBuffer(message.getName());
+          this.correlationKey.wrapBuffer(message.getCorrelationKey());
+          nameAndCorrelationKey.wrapKeys(messageName, this.correlationKey);
+          nameCorrelationMessageKey.wrapKeys(nameAndCorrelationKey, messageKey);
 
-      int length = writeMessageKey(keyBuffer, message);
-      batch.delete(messageColumnFamily, keyBuffer.byteArray(), length);
+          nameCorrelationMessageColumnFamily.delete(nameCorrelationMessageKey);
 
-      length = writeDeadlineKey(keyBuffer, message);
-      batch.delete(deadlineColumnFamily, keyBuffer.byteArray(), length);
+          final DirectBuffer messageId = message.getId();
+          if (messageId.capacity() > 0) {
+            this.messageId.wrapBuffer(messageId);
+            nameCorrelationMessageIdKey.wrapKeys(nameAndCorrelationKey, this.messageId);
+            messageIdColumnFamily.delete(nameCorrelationMessageIdKey);
+          }
 
-      if (message.getId().capacity() > 0) {
-        length =
-            writeMessageIdKey(
-                keyBuffer, message.getName(), message.getCorrelationKey(), message.getId());
-        batch.delete(messageIdColumnFamily, keyBuffer.byteArray(), length);
-      }
+          deadline.wrapLong(message.getDeadline());
+          deadlineMessageKey.wrapKeys(deadline, messageKey);
+          deadlineColumnFamily.delete(deadlineMessageKey);
 
-      final UnsafeBuffer prefixBuffer = new UnsafeBuffer(new byte[Long.BYTES]);
-      prefixBuffer.putLong(0, key, STATE_BYTE_ORDER);
-
-      db.forEachPrefixed(
-          correlatedMessageColumnFamily,
-          prefixBuffer,
-          (entry, control) -> {
-            batch.delete(correlatedMessageColumnFamily, entry.getKey());
-          });
-
-      db.write(options, batch);
-    } catch (RocksDBException e) {
-      throw new RuntimeException(e);
-    }
+          correlatedMessageColumnFamily.whileEqualPrefix(
+              messageKey,
+              ((compositeKey, zbNil) -> {
+                correlatedMessageColumnFamily.delete(compositeKey);
+              }));
+        });
   }
 
   @FunctionalInterface

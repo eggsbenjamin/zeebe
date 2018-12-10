@@ -135,6 +135,8 @@ public class ExporterStreamProcessor implements StreamProcessor {
     state.close();
   }
 
+
+
   private boolean shouldCommitPositions() {
     return false;
   }
