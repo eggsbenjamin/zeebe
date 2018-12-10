@@ -16,7 +16,6 @@
 package io.zeebe.logstreams.processor;
 
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamReader;
@@ -26,15 +25,17 @@ import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
 import io.zeebe.util.LangUtil;
 import io.zeebe.util.metrics.MetricsManager;
-import io.zeebe.util.sched.*;
+import io.zeebe.util.sched.Actor;
+import io.zeebe.util.sched.ActorCondition;
+import io.zeebe.util.sched.ActorPriority;
+import io.zeebe.util.sched.ActorScheduler;
 import io.zeebe.util.sched.ActorTask.ActorLifecyclePhase;
+import io.zeebe.util.sched.SchedulingHints;
 import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.future.CompletableActorFuture;
-import org.slf4j.Logger;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import org.slf4j.Logger;
 
 public class StreamProcessorController extends Actor {
   private static final Logger LOG = Loggers.LOGSTREAMS_LOGGER;
@@ -80,7 +81,6 @@ public class StreamProcessorController extends Actor {
   private boolean suspended = false;
 
   private StreamProcessorMetrics metrics;
-  private final Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory;
 
   public StreamProcessorController(final StreamProcessorContext context) {
     this.streamProcessorContext = context;
@@ -395,7 +395,6 @@ public class StreamProcessorController extends Actor {
 
   private void doCreateSnapshot() {
     if (currentEvent != null) {
-      final long commitPosition = streamProcessorContext.getLogStream().getCommitPosition();
       final long lastWrittenPosition =
           lastWrittenEventPosition > lastSuccessfulProcessedEventPosition
               ? lastWrittenEventPosition
@@ -408,14 +407,14 @@ public class StreamProcessorController extends Actor {
               streamProcessorContext.getLogStream().getTerm(),
               false);
 
-      writeSnapshot(metadata, commitPosition);
+      writeSnapshot(metadata);
     }
 
     // reset to cpu bound
     actor.setSchedulingHints(SchedulingHints.cpuBound(ActorPriority.REGULAR));
   }
 
-  private void writeSnapshot(final StateSnapshotMetadata metadata, final long commitPosition) {
+  private void writeSnapshot(final StateSnapshotMetadata metadata) {
     final long start = System.currentTimeMillis();
     final String name = streamProcessorContext.getName();
     LOG.info(

@@ -27,22 +27,17 @@ import io.zeebe.broker.workflow.deployment.distribute.processor.state.Deployment
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
-import io.zeebe.logstreams.rocksdb.ZbRocksDb;
-import io.zeebe.logstreams.state.StateController;
-import java.io.File;
-import java.util.List;
 
-public class ZeebeState extends StateController {
+public class ZeebeState {
 
   private final KeyState keyState;
   private final WorkflowState workflowState;
   private final DeploymentsState deploymentState;
   private final JobState jobState;
   private final MessageState messageState;
-
   private final MessageSubscriptionState messageSubscriptionState;
-  private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState =
-      new WorkflowInstanceSubscriptionState();
+  private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState;
+
   private final IncidentState incidentState = new IncidentState();
 
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
@@ -52,34 +47,9 @@ public class ZeebeState extends StateController {
     jobState = new JobState(zeebeDb);
     messageState = new MessageState(zeebeDb);
     messageSubscriptionState = new MessageSubscriptionState(zeebeDb);
+    workflowInstanceSubscriptionState = new WorkflowInstanceSubscriptionState(zeebeDb);
 
-    workflowInstanceSubscriptionState.onOpened(this);
     incidentState.onOpened(this);
-  }
-
-  @Override
-  public ZbRocksDb open(final File dbDirectory, final boolean reopen) throws Exception {
-    final List<byte[]> columnFamilyNames = WorkflowState.getColumnFamilyNames();
-    columnFamilyNames.addAll(DeploymentsState.getColumnFamilyNames());
-    columnFamilyNames.addAll(JobState.getColumnFamilyNames());
-    columnFamilyNames.addAll(MessageState.getColumnFamilyNames());
-    columnFamilyNames.addAll(MessageSubscriptionState.getColumnFamilyNames());
-    columnFamilyNames.addAll(WorkflowInstanceSubscriptionState.getColumnFamilyNames());
-    columnFamilyNames.addAll(IncidentState.getColumnFamilyNames());
-    columnFamilyNames.addAll(KeyState.getColumnFamilyNames());
-
-    final ZbRocksDb rocksDB = super.open(dbDirectory, reopen, columnFamilyNames);
-
-    workflowState.onOpened(this);
-    deploymentState.onOpened(this);
-    jobState.onOpened(this);
-    messageState.onOpened(this);
-    messageSubscriptionState.onOpened(this);
-    workflowInstanceSubscriptionState.onOpened(this);
-    incidentState.onOpened(this);
-    keyState.onOpened(this);
-
-    return rocksDB;
   }
 
   public DeploymentsState getDeploymentState() {
