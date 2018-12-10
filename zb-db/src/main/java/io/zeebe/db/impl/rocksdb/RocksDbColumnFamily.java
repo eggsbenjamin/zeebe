@@ -58,6 +58,9 @@ public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValu
   public void whileEqualPrefix(ZbKey keyPrefixType, BiConsumer<KeyType, ValueType> consumer) {}
 
   @Override
+  public void whileEqualPrefix(ZbKey keyPrefix, BiFunction<KeyType, ValueType, Boolean> consumer) {}
+
+  @Override
   public void delete(KeyType key) {}
 
   @Override

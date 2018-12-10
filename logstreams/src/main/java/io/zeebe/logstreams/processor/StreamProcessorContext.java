@@ -22,7 +22,6 @@ import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.util.sched.ActorControl;
 import io.zeebe.util.sched.ActorScheduler;
-
 import java.time.Duration;
 import java.util.function.Function;
 

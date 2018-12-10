@@ -25,7 +25,6 @@ import io.zeebe.servicecontainer.ServiceContainer;
 import io.zeebe.servicecontainer.ServiceName;
 import io.zeebe.util.sched.ActorScheduler;
 import io.zeebe.util.sched.future.ActorFuture;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;

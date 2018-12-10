@@ -17,7 +17,6 @@ package io.zeebe.logstreams.spi;
 
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.logstreams.state.StateSnapshotMetadata;
-
 import java.util.function.Predicate;
 
 public interface SnapshotController {
