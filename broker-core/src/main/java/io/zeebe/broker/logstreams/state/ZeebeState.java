@@ -37,8 +37,7 @@ public class ZeebeState {
   private final MessageState messageState;
   private final MessageSubscriptionState messageSubscriptionState;
   private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState;
-
-  private final IncidentState incidentState = new IncidentState();
+  private final IncidentState incidentState;
 
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     keyState = new KeyState(partitionId, zeebeDb);
@@ -48,8 +47,7 @@ public class ZeebeState {
     messageState = new MessageState(zeebeDb);
     messageSubscriptionState = new MessageSubscriptionState(zeebeDb);
     workflowInstanceSubscriptionState = new WorkflowInstanceSubscriptionState(zeebeDb);
-
-    incidentState.onOpened(this);
+    incidentState = new IncidentState(zeebeDb);
   }
 
   public DeploymentsState getDeploymentState() {
