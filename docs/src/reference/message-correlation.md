@@ -16,6 +16,8 @@ A message is published by the payment service using one of the Zeebe clients. It
 
 > Note that a message can be correlated to multiple workflow instances if they share the same correlation information. But it can be correlated only once per workflow instance.
 
+> In the case of a message subscription opened due to a non-interrupting message boundary event, incoming messages will be correlated as they are published. In rare cases, since execution is interleaved, this may result in messages appearing to be processed out of order.
+
 ## Message Buffering
 
 In Zeebe, messages can be buffered for a given time. Buffering can be useful in a situation when it is not guaranteed that the message catch event is entered before the message is published.

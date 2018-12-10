@@ -23,7 +23,7 @@ XML representation:
 </bpmn:message>
 ```
 
-## Message Intermediate Catch Events
+## Intermediate Message Catch Events
 
 ![workflow](/bpmn-workflows/message-catch-event-example.png)
 
@@ -54,6 +54,13 @@ XML representation:
   </bpmn:extensionElements>
 </bpmn:intermediateCatchEvent>
 ```
+
+### Boundary Events
+
+When attached to the boundary of an activity, an intermediate message catch event behaves in two ways:
+
+If it is non-interrupting, it will spawn a new token which will take all outgoing sequence flows, applying any defined output mapping with the message payload.
+If it is interrupting, however, it will first terminate the activity before spawning the token.
 
 ## Additional Resources
 
