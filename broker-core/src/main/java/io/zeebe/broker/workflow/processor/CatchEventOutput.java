@@ -151,7 +151,7 @@ public class CatchEventOutput {
     final long elementInstanceKey = context.getRecord().getKey();
     final DirectBuffer messageName = cloneBuffer(message.getMessageName());
     final DirectBuffer correlationKey = cloneBuffer(extractedKey);
-    final boolean closeOnCorrelate = true; // todo (npepinpe): will updated in #1592
+    final boolean closeOnCorrelate = handler.shouldCloseMessageSubscriptionOnCorrelate();
 
     subscription.setMessageName(messageName);
     subscription.setElementInstanceKey(elementInstanceKey);

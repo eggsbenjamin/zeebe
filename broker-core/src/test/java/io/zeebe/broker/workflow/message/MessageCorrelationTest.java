@@ -481,6 +481,44 @@ public class MessageCorrelationTest {
             WorkflowInstanceIntent.SEQUENCE_FLOW_TAKEN);
   }
 
+  @Test
+  public void shouldCorrelateAndTakeFlowForEachMessageWithoutContinuing() {
+    // given
+    final BpmnModelInstance workflow =
+        Bpmn.createExecutableProcess(PROCESS_ID)
+            .startEvent()
+            .serviceTask("task", b -> b.zeebeTaskType("type"))
+            .boundaryEvent("msg1")
+            .cancelActivity(false)
+            .message(m -> m.name("msg1").zeebeCorrelationKey("$.key"))
+            .endEvent("msg1End")
+            .moveToActivity("task")
+            .endEvent("taskEnd")
+            .done();
+    testClient.deploy(workflow);
+    testClient.createWorkflowInstance(PROCESS_ID, asMsgPack("key", "123"));
+
+    // when
+    awaitSubscriptionsOpened(1);
+    testClient.publishMessage("msg1", "123", asMsgPack("foo", 0));
+    testClient.publishMessage("msg1", "123", asMsgPack("foo", 1));
+    testClient.publishMessage("msg1", "123", asMsgPack("foo", 2));
+    testClient.completeJobOfType("type", "{ \"bar\": 1 }");
+
+    // then
+    final List<Record<WorkflowInstanceRecordValue>> records = getEndEventRecords();
+
+    assertThat(records).hasSize(4);
+    for (int i = 0; i < 3; i++) {
+      assertThat(records.get(i).getValue().getElementId()).isEqualTo("msg1End");
+      assertThat(records.get(i).getValue().getPayloadAsMap())
+          .containsExactly(entry("key", "123"), entry("foo", i));
+    }
+    assertThat(records.get(3).getValue().getElementId()).isEqualTo("taskEnd");
+    assertWorkflowInstancePayload(
+        WorkflowInstanceIntent.ELEMENT_COMPLETED, "{ \"key\": \"123\", \"foo\": 2, \"bar\": 1 }");
+  }
+
   private List<Record<WorkflowInstanceRecordValue>> getEndEventRecords() {
     return RecordingExporter.workflowInstanceRecords()
         .limitToWorkflowInstanceCompleted()
