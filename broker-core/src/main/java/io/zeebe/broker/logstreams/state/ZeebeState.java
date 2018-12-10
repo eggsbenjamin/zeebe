@@ -38,9 +38,9 @@ public class ZeebeState extends StateController {
   private final WorkflowState workflowState;
   private final DeploymentsState deploymentState;
   private final JobState jobState;
+  private final MessageState messageState;
 
-  private final MessageState messageState = new MessageState();
-  private final MessageSubscriptionState messageSubscriptionState = new MessageSubscriptionState();
+  private final MessageSubscriptionState messageSubscriptionState;
   private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState =
       new WorkflowInstanceSubscriptionState();
   private final IncidentState incidentState = new IncidentState();
@@ -50,9 +50,9 @@ public class ZeebeState extends StateController {
     workflowState = new WorkflowState(zeebeDb);
     deploymentState = new DeploymentsState(zeebeDb);
     jobState = new JobState(zeebeDb);
+    messageState = new MessageState(zeebeDb);
+    messageSubscriptionState = new MessageSubscriptionState(zeebeDb);
 
-    messageState.onOpened(this);
-    messageSubscriptionState.onOpened(this);
     workflowInstanceSubscriptionState.onOpened(this);
     incidentState.onOpened(this);
   }

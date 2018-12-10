@@ -21,13 +21,12 @@ import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
-import io.zeebe.util.buffer.BufferReader;
-import io.zeebe.util.buffer.BufferWriter;
+import io.zeebe.db.ZbValue;
 import org.agrona.DirectBuffer;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public class MessageSubscription implements BufferReader, BufferWriter {
+public class MessageSubscription implements ZbValue {
 
   private final DirectBuffer messageName = new UnsafeBuffer();
   private final DirectBuffer correlationKey = new UnsafeBuffer();

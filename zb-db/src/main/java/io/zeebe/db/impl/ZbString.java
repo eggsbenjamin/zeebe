@@ -38,4 +38,9 @@ public class ZbString implements ZbKey, ZbValue {
   public void write(MutableDirectBuffer mutableDirectBuffer, int offset) {
     mutableDirectBuffer.putBytes(offset, bytes);
   }
+
+  @Override
+  public String toString() {
+    return new String(bytes);
+  }
 }
