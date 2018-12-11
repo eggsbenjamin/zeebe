@@ -18,7 +18,6 @@
 package io.zeebe.broker.logstreams.processor;
 
 import io.zeebe.broker.clustering.base.partitions.Partition;
-import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.LogStreams;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.LogStream;
@@ -36,11 +35,9 @@ import io.zeebe.servicecontainer.ServiceStartContext;
 import io.zeebe.util.EnsureUtil;
 import io.zeebe.util.sched.ActorScheduler;
 import io.zeebe.util.sched.future.ActorFuture;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 public class StreamProcessorServiceFactory implements Service<StreamProcessorServiceFactory> {
   private final ServiceContainer serviceContainer;
@@ -78,8 +75,6 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
     protected MetadataFilter customEventFilter;
     protected boolean readOnly = false;
     private StreamProcessorFactory streamProcessorFactory;
-    private ZeebeDbFactory zeebeDbFactory;
-    private Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory;
 
     public Builder(Partition partition, ServiceName<Partition> serviceName) {
       this.logStream = partition.getLogStream();
@@ -88,12 +83,6 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
 
     public Builder streamProcessorFactory(StreamProcessorFactory streamProcessorFactory) {
       this.streamProcessorFactory = streamProcessorFactory;
-      return this;
-    }
-
-    public Builder snapshotControllerFactory(
-        Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory) {
-      this.snapshotControllerFactory = snapshotControllerFactory;
       return this;
     }
 
@@ -118,11 +107,6 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
       return this;
     }
 
-    public Builder eventFilter(MetadataFilter eventFilter) {
-      this.customEventFilter = eventFilter;
-      return this;
-    }
-
     public Builder snapshotController(SnapshotController snapshotController) {
       this.snapshotController = snapshotController;
       return this;
@@ -130,13 +114,6 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
 
     public Builder readOnly(boolean readOnly) {
       this.readOnly = readOnly;
-      return this;
-    }
-
-    public Builder additionalDependencies(ServiceName<?>... additionalDependencies) {
-      for (ServiceName<?> serviceName : additionalDependencies) {
-        this.additionalDependencies.add(serviceName);
-      }
       return this;
     }
 
@@ -161,14 +138,7 @@ public class StreamProcessorServiceFactory implements Service<StreamProcessorSer
           .readOnly(readOnly)
           .additionalDependencies(additionalDependencies)
           .streamProcessorFactory(streamProcessorFactory)
-          .zeebeDbFactory(zeebeDbFactory)
-          .snapshotControllerFactory(snapshotControllerFactory)
           .build();
-    }
-
-    public Builder zeebeDbFactory(ZeebeDbFactory zeebeDbFactory) {
-      this.zeebeDbFactory = zeebeDbFactory;
-      return this;
     }
   }
 

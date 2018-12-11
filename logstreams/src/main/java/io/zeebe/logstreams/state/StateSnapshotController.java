@@ -86,7 +86,7 @@ public class StateSnapshotController implements SnapshotController {
 
   @Override
   public ZeebeDb openDb() {
-    db = zeebeRocksDbFactory.createDb();
+    db = zeebeRocksDbFactory.createDb(storage.getRuntimeDirectory());
     return db;
   }
 

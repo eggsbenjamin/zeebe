@@ -179,21 +179,4 @@ public class StreamProcessorContext {
   public StreamProcessorFactory getStreamProcessorFactory() {
     return streamProcessorFactory;
   }
-
-  public void setZeebeDbFactory(ZeebeDbFactory zeebeDbFactory) {
-    this.zeebeDbFactory = zeebeDbFactory;
-  }
-
-  public ZeebeDbFactory getZeebeDbFactory() {
-    return zeebeDbFactory;
-  }
-
-  public void setSnapshotControllerFactory(
-      Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory) {
-    this.snapshotControllerFactory = snapshotControllerFactory;
-  }
-
-  public Function<ZeebeDbFactory, SnapshotController> getSnapshotControllerFactory() {
-    return snapshotControllerFactory;
-  }
 }

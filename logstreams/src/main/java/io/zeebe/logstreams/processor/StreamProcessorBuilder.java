@@ -15,10 +15,14 @@
  */
 package io.zeebe.logstreams.processor;
 
-import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.impl.service.LogStreamServiceNames;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
-import io.zeebe.logstreams.log.*;
+import io.zeebe.logstreams.log.BufferedLogStreamReader;
+import io.zeebe.logstreams.log.DisabledLogStreamWriter;
+import io.zeebe.logstreams.log.LogStream;
+import io.zeebe.logstreams.log.LogStreamReader;
+import io.zeebe.logstreams.log.LogStreamRecordWriter;
+import io.zeebe.logstreams.log.LogStreamWriterImpl;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.servicecontainer.ServiceBuilder;
 import io.zeebe.servicecontainer.ServiceContainer;
@@ -28,7 +32,6 @@ import io.zeebe.util.sched.future.ActorFuture;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class StreamProcessorBuilder {
   protected int id;
@@ -53,8 +56,6 @@ public class StreamProcessorBuilder {
   protected ServiceContainer serviceContainer;
   private List<ServiceName<?>> additionalDependencies;
   private StreamProcessorFactory streamProcessorFactory;
-  private ZeebeDbFactory zeebeDbFactory;
-  private Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory;
 
   public StreamProcessorBuilder(int id, String name, StreamProcessor streamProcessor) {
     this.id = id;
@@ -65,12 +66,6 @@ public class StreamProcessorBuilder {
   public StreamProcessorBuilder streamProcessorFactory(
       StreamProcessorFactory streamProcessorFactory) {
     this.streamProcessorFactory = streamProcessorFactory;
-    return this;
-  }
-
-  public StreamProcessorBuilder snapshotControllerFactory(
-      Function<ZeebeDbFactory, SnapshotController> snapshotControllerFactory) {
-    this.snapshotControllerFactory = snapshotControllerFactory;
     return this;
   }
 
@@ -113,11 +108,6 @@ public class StreamProcessorBuilder {
 
   public StreamProcessorBuilder serviceContainer(ServiceContainer serviceContainer) {
     this.serviceContainer = serviceContainer;
-    return this;
-  }
-
-  public StreamProcessorBuilder zeebeDbFactory(ZeebeDbFactory zeebeDbFactory) {
-    this.zeebeDbFactory = zeebeDbFactory;
     return this;
   }
 
@@ -186,8 +176,6 @@ public class StreamProcessorBuilder {
     }
     ctx.setLogStreamWriter(logStreamWriter);
     ctx.setStreamProcessorFactory(streamProcessorFactory);
-    ctx.setZeebeDbFactory(zeebeDbFactory);
-    ctx.setSnapshotControllerFactory(snapshotControllerFactory);
 
     return ctx;
   }

@@ -39,6 +39,7 @@ import io.zeebe.broker.workflow.processor.deployment.DeploymentEventProcessors;
 import io.zeebe.broker.workflow.processor.timer.DueDateTimerChecker;
 import io.zeebe.broker.workflow.repository.WorkflowRepository;
 import io.zeebe.broker.workflow.state.WorkflowState;
+import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.log.LogStream;
 import io.zeebe.logstreams.log.LogStreamWriterImpl;
@@ -109,11 +110,11 @@ public class ZbStreamProcessorService implements Service<ZbStreamProcessorServic
     final StateStorage stateStorage =
         partition.getStateStorageFactory().create(partitionId, PROCESSOR_NAME);
     final StateSnapshotController stateSnapshotController =
-        new StateSnapshotController(ZeebeRocksDbFactory.newFactory(), stateStorage);
+        new StateSnapshotController(
+            ZeebeRocksDbFactory.newFactory(ZbColumnFamilies.class), stateStorage);
 
     streamProcessorServiceBuilder
         .snapshotController(stateSnapshotController)
-        .zeebeDbFactory(ZeebeRocksDbFactory.newFactory())
         .streamProcessorFactory(
             (zeebeDb) -> {
               final ZeebeState zeebeState = new ZeebeState(partitionId, zeebeDb);
@@ -133,10 +134,7 @@ public class ZbStreamProcessorService implements Service<ZbStreamProcessorServic
       TypedStreamEnvironment streamEnvironment,
       ZeebeState zeebeState) {
     final TypedEventStreamProcessorBuilder typedProcessorBuilder =
-        streamEnvironment
-            .newStreamProcessor()
-            .keyGenerator(zeebeState.getKeyGenerator())
-            .withStateController(zeebeState);
+        streamEnvironment.newStreamProcessor().keyGenerator(zeebeState.getKeyGenerator());
 
     addDistributeDeploymentProcessors(zeebeState, streamEnvironment, typedProcessorBuilder);
     final BpmnStepProcessor stepProcessor =
