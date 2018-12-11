@@ -1,4 +1,4 @@
-package io.zeebe.broker.exporter;
+package io.zeebe.broker.exporter.stream;
 
 /** */
 public enum ExporterColumnFamily {
