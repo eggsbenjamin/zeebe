@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.zeebe.broker.job.JobState.State;
 import io.zeebe.broker.logstreams.state.ZeebeState;
+import io.zeebe.broker.util.ZeebeStateRule;
 import io.zeebe.protocol.impl.record.value.job.JobRecord;
 import io.zeebe.util.buffer.BufferUtil;
 import java.util.ArrayList;
@@ -31,28 +32,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class JobStateTest {
-  @Rule public TemporaryFolder folder = new TemporaryFolder();
+  @Rule public ZeebeStateRule stateRule = new ZeebeStateRule();
 
   private JobState stateController;
   private ZeebeState zeebeState;
 
   @Before
-  public void setUp() throws Exception {
-    zeebeState = new ZeebeState();
-    zeebeState.open(folder.newFolder("db"), false);
+  public void setUp() {
+    zeebeState = stateRule.getZeebeState();
     stateController = zeebeState.getJobState();
-  }
-
-  @After
-  public void tearDown() {
-    zeebeState.close();
   }
 
   @Test

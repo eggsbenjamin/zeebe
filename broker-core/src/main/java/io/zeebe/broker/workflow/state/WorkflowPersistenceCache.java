@@ -63,23 +63,21 @@ public class WorkflowPersistenceCache {
   private final ZbLong workflowVersion;
 
   public WorkflowPersistenceCache(ZeebeDb<ZbColumnFamilies> zeebeDb) {
-    workflowColumnFamily =
-        zeebeDb.createColumnFamily(
-            ZbColumnFamilies.WORKFLOW_CACHE, ZbLong.class, PersistedWorkflow.class);
     workflowKey = new ZbLong();
     persistedWorkflow = new PersistedWorkflow();
+    workflowColumnFamily =
+        zeebeDb.createColumnFamily(ZbColumnFamilies.WORKFLOW_CACHE, workflowKey, persistedWorkflow);
 
+    idAndVersionKey = new ZbCompositeKey<>();
     workflowByIdAndVersionColumnFamily =
         zeebeDb.createColumnFamily(
-            ZbColumnFamilies.WORKFLOW_CACHE_BY_ID_AND_VERSION,
-            ZbCompositeKey.class,
-            PersistedWorkflow.class);
-    idAndVersionKey = new ZbCompositeKey<>();
-    latestWorkflowColumnFamily =
-        zeebeDb.createColumnFamily(
-            ZbColumnFamilies.WORKFLOW_CACHE_LATEST_KEY, ZbString.class, ZbLong.class);
+            ZbColumnFamilies.WORKFLOW_CACHE_BY_ID_AND_VERSION, idAndVersionKey, persistedWorkflow);
+
     workflowId = new ZbString();
     workflowVersion = new ZbLong();
+    latestWorkflowColumnFamily =
+        zeebeDb.createColumnFamily(
+            ZbColumnFamilies.WORKFLOW_CACHE_LATEST_KEY, workflowId, workflowVersion);
 
     deployments = new LongHashSet();
     workflowsByKey = new Long2ObjectHashMap<>();

@@ -21,33 +21,26 @@ import static io.zeebe.util.buffer.BufferUtil.wrapString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.zeebe.broker.logstreams.state.ZeebeState;
+import io.zeebe.broker.util.ZeebeStateRule;
 import io.zeebe.util.sched.clock.ActorClock;
 import java.util.ArrayList;
 import java.util.List;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class MessageStateTest {
 
-  @Rule public TemporaryFolder folder = new TemporaryFolder();
+  @Rule public ZeebeStateRule stateRule = new ZeebeStateRule();
 
   private MessageState stateController;
   private ZeebeState zeebeState;
 
   @Before
-  public void setUp() throws Exception {
-    zeebeState = new ZeebeState();
-    zeebeState.open(folder.newFolder("rocksdb"), false);
+  public void setUp() {
+    zeebeState = stateRule.getZeebeState();
     stateController = zeebeState.getMessageState();
-  }
-
-  @After
-  public void close() {
-    zeebeState.close();
   }
 
   @Test

@@ -106,7 +106,10 @@ public class TimerInstanceState {
     this.elementInstanceKey.wrapLong(elementInstanceKey);
 
     timerInstanceColumnFamily.whileEqualPrefix(
-        this.elementInstanceKey, (key, value) -> action.accept(value));
+        this.elementInstanceKey,
+        (key, value) -> {
+          action.accept(value);
+        });
   }
 
   public TimerInstance get(long elementInstanceKey, long timerKey) {

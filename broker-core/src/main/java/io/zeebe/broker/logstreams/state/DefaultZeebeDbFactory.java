@@ -15,38 +15,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package io.zeebe.broker.job;
+package io.zeebe.broker.logstreams.state;
 
-import io.zeebe.db.ZbValue;
-import io.zeebe.msgpack.UnpackedObject;
-import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
+import io.zeebe.db.ZeebeDbFactory;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 
-/** */
-public class UnpackedObjectValue implements ZbValue {
+public final class DefaultZeebeDbFactory {
 
-  private UnpackedObject value;
-
-  public void wrapObject(UnpackedObject value) {
-    this.value = value;
-  }
-
-  @Override
-  public void wrap(DirectBuffer buffer, int offset, int length) {
-    value.wrap(buffer, offset, length);
-  }
-
-  @Override
-  public int getLength() {
-    return value.getLength();
-  }
-
-  @Override
-  public void write(MutableDirectBuffer buffer, int offset) {
-    value.write(buffer, offset);
-  }
-
-  public UnpackedObject getObject() {
-    return value;
-  }
+  public static final ZeebeDbFactory<ZbColumnFamilies> DEFAULT_DB_FACTORY =
+      ZeebeRocksDbFactory.newFactory(ZbColumnFamilies.class);
 }

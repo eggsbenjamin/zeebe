@@ -26,6 +26,7 @@ import io.zeebe.broker.subscription.message.state.WorkflowInstanceSubscriptionSt
 import io.zeebe.broker.workflow.deployment.distribute.processor.state.DeploymentsState;
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
+import io.zeebe.protocol.Protocol;
 
 public class ZeebeState {
 
@@ -37,6 +38,10 @@ public class ZeebeState {
   private final MessageSubscriptionState messageSubscriptionState;
   private final WorkflowInstanceSubscriptionState workflowInstanceSubscriptionState;
   private final IncidentState incidentState;
+
+  public ZeebeState(ZeebeDb<ZbColumnFamilies> zeebeDb) {
+    this(Protocol.DEPLOYMENT_PARTITION, zeebeDb);
+  }
 
   public ZeebeState(int partitionId, ZeebeDb<ZbColumnFamilies> zeebeDb) {
     keyState = new KeyState(partitionId, zeebeDb);

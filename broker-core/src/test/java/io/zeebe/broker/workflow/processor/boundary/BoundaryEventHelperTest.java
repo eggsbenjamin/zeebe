@@ -17,6 +17,7 @@
  */
 package io.zeebe.broker.workflow.processor.boundary;
 
+import static io.zeebe.broker.logstreams.state.DefaultZeebeDbFactory.DEFAULT_DB_FACTORY;
 import static io.zeebe.msgpack.value.DocumentValue.EMPTY_DOCUMENT;
 import static io.zeebe.test.util.MsgPackUtil.asMsgPack;
 import static io.zeebe.util.buffer.BufferUtil.wrapString;
@@ -29,12 +30,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.zeebe.broker.logstreams.processor.TypedStreamWriter;
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.broker.logstreams.state.ZeebeState;
 import io.zeebe.broker.workflow.model.element.ExecutableWorkflow;
 import io.zeebe.broker.workflow.model.transformation.BpmnTransformer;
 import io.zeebe.broker.workflow.state.DeployedWorkflow;
 import io.zeebe.broker.workflow.state.ElementInstance;
 import io.zeebe.broker.workflow.state.WorkflowState;
+import io.zeebe.db.ZeebeDb;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
@@ -55,20 +58,22 @@ public class BoundaryEventHelperTest {
   private final BoundaryEventHelper helper = new BoundaryEventHelper();
   private final BpmnTransformer bpmnTransformer = new BpmnTransformer();
 
-  private final ZeebeState state = new ZeebeState();
+  private ZeebeState state;
   private TypedStreamWriter writer;
   private WorkflowState workflowState;
+  private ZeebeDb<ZbColumnFamilies> zeebeDb;
 
   @Before
   public void setUp() throws Exception {
-    state.open(folder.newFolder("state"), false);
-    workflowState = spy(state.getWorkflowState());
+    zeebeDb = DEFAULT_DB_FACTORY.createDb(folder.newFolder("state"));
+    this.state = new ZeebeState(zeebeDb);
+    workflowState = spy(this.state.getWorkflowState());
     writer = mock(TypedStreamWriter.class);
   }
 
   @After
-  public void tearDown() {
-    state.close();
+  public void tearDown() throws Exception {
+    zeebeDb.close();
   }
 
   @Test

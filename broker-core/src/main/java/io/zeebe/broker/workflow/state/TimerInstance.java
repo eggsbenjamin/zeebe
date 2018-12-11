@@ -27,7 +27,6 @@ import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public class TimerInstance implements ZbValue {
-  public static final int KEY_LENGTH = 2 * Long.BYTES;
 
   private final DirectBuffer handlerNodeId = new UnsafeBuffer(0, 0);
   private long key;
@@ -99,22 +98,5 @@ public class TimerInstance implements ZbValue {
 
     offset = readIntoBuffer(buffer, offset, handlerNodeId);
     assert offset == length : "End offset differs from length";
-  }
-
-  @Override
-  public void writeKey(MutableDirectBuffer keyBuffer, int offset) {
-    int keyOffset = offset;
-    keyBuffer.putLong(keyOffset, elementInstanceKey, STATE_BYTE_ORDER);
-    keyOffset += Long.BYTES;
-
-    keyBuffer.putLong(keyOffset, key, STATE_BYTE_ORDER);
-    keyOffset += Long.BYTES;
-
-    assert (keyOffset - offset) == getKeyLength() : "End offset differs from getKeyLength()";
-  }
-
-  @Override
-  public int getKeyLength() {
-    return KEY_LENGTH;
   }
 }
