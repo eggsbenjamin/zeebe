@@ -17,6 +17,7 @@
  */
 package io.zeebe.broker.job;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbByte;
@@ -24,7 +25,6 @@ import io.zeebe.db.impl.ZbCompositeKey;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbNil;
 import io.zeebe.db.impl.ZbString;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.impl.record.value.job.JobRecord;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;

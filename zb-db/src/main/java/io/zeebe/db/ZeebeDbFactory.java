@@ -25,7 +25,7 @@ import java.io.File;
  *
  * @param <ColumnFamilyNames> the names of the column families
  */
-public interface ZeebeDbFactory<ColumnFamilyNames extends Enum> {
+public interface ZeebeDbFactory<ColumnFamilyNames extends Enum<ColumnFamilyNames>> {
 
   /**
    * Creates a zeebe database in the given directory.

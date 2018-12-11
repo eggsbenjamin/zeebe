@@ -18,10 +18,10 @@
 package io.zeebe.broker.incident.processor;
 
 import io.zeebe.broker.job.UnpackedObjectValue;
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbLong;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.impl.record.value.incident.IncidentRecord;
 import java.util.function.ObjLongConsumer;
 

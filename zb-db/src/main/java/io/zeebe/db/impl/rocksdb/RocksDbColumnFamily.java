@@ -24,7 +24,9 @@ import java.util.function.Consumer;
 
 /** */
 public class RocksDbColumnFamily<
-        ColumnFamilyNames extends Enum, KeyType extends ZbKey, ValueType extends ZbValue>
+        ColumnFamilyNames extends Enum<ColumnFamilyNames>,
+        KeyType extends ZbKey,
+        ValueType extends ZbValue>
     implements ColumnFamily<KeyType, ValueType> {
 
   private final ZbRocksDb<?> zbRocksDb;

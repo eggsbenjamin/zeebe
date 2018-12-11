@@ -18,6 +18,7 @@
 package io.zeebe.broker.workflow.state;
 
 import io.zeebe.broker.logstreams.processor.TypedRecord;
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.broker.workflow.state.StoredRecord.Purpose;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
@@ -25,7 +26,6 @@ import io.zeebe.db.impl.ZbByte;
 import io.zeebe.db.impl.ZbCompositeKey;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbNil;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import java.util.ArrayList;

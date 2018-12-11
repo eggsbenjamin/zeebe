@@ -40,7 +40,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.TableFormatConfig;
 
-public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum>
+public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum<ColumnFamilyType>>
     implements ZeebeDbFactory<ColumnFamilyType> {
 
   static {
@@ -53,8 +53,9 @@ public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum>
     this.columnFamilyTypeClass = columnFamilyTypeClass;
   }
 
-  public static <ColumnFamilyType extends Enum> ZeebeRocksDbFactory<ColumnFamilyType> newFactory(
-      Class<ColumnFamilyType> columnFamilyTypeClass) {
+  public static <ColumnFamilyType extends Enum<ColumnFamilyType>>
+      ZeebeRocksDbFactory<ColumnFamilyType> newFactory(
+          Class<ColumnFamilyType> columnFamilyTypeClass) {
     return new ZeebeRocksDbFactory(columnFamilyTypeClass);
   }
 

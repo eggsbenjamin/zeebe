@@ -26,7 +26,7 @@ package io.zeebe.db;
  *
  * @param <ColumnFamilyType>
  */
-public interface ZeebeDb<ColumnFamilyType extends Enum> extends AutoCloseable {
+public interface ZeebeDb<ColumnFamilyType extends Enum<ColumnFamilyType>> extends AutoCloseable {
 
   /**
    * Runs the commands like delete, put etc. in a batch operation. Access of different column

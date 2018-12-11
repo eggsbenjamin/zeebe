@@ -17,11 +17,11 @@
  */
 package io.zeebe.broker.workflow.deployment.distribute.processor.state;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.broker.workflow.deployment.distribute.processor.PendingDeploymentDistribution;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbLong;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import java.util.function.ObjLongConsumer;
 import org.agrona.concurrent.UnsafeBuffer;
 

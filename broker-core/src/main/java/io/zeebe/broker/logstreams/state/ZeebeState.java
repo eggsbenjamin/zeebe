@@ -26,7 +26,6 @@ import io.zeebe.broker.subscription.message.state.WorkflowInstanceSubscriptionSt
 import io.zeebe.broker.workflow.deployment.distribute.processor.state.DeploymentsState;
 import io.zeebe.broker.workflow.state.WorkflowState;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 
 public class ZeebeState {
 

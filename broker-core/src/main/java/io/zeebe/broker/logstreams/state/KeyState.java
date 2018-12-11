@@ -20,7 +20,6 @@ package io.zeebe.broker.logstreams.state;
 import io.zeebe.broker.logstreams.processor.KeyGenerator;
 import io.zeebe.broker.workflow.state.NextValueManager;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.Protocol;
 
 public class KeyState implements KeyGenerator {

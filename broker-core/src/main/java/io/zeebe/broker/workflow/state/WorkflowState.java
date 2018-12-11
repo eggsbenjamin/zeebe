@@ -17,8 +17,8 @@
  */
 package io.zeebe.broker.workflow.state;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ZeebeDb;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;
 import java.util.Collection;
 import org.agrona.DirectBuffer;

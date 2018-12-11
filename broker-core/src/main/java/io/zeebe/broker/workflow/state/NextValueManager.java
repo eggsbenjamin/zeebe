@@ -17,11 +17,11 @@
  */
 package io.zeebe.broker.workflow.state;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbString;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 
 public class NextValueManager {
 

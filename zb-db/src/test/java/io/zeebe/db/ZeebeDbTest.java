@@ -16,10 +16,8 @@
 package io.zeebe.db;
 
 import io.zeebe.db.impl.ZbLong;
-import io.zeebe.db.impl.rocksdb.RocksDbColumnFamily;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
-import io.zeebe.db.impl.rocksdb.ZbRocksDb;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
+import java.io.File;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,31 +27,18 @@ public class ZeebeDbTest {
 
   public ZeebeDb zeebeDb;
 
+  private enum ColumnFamilies {
+    DEFAULT
+  }
+
   @Before
   public void setUp() {
-    zeebeDb = ZeebeRocksDbFactory.newFactory().createDb();
+    zeebeDb = ZeebeRocksDbFactory.newFactory(ColumnFamilies.class).createDb(new File("/tmp/data"));
   }
 
   @After
   public void close() throws Exception {
     zeebeDb.close();
-  }
-
-  @Test
-  public void shouldStoreValue() {
-    // given db
-    final ZbLong longKey = new ZbLong();
-    longKey.wrapLong(1);
-    final ZbLong longValue = new ZbLong();
-    longKey.wrapLong(2);
-
-    // when
-    zeebeDb.put(ZbColumnFamilies.DEFAULT, longKey, longValue);
-
-    zeebeDb.batch(() -> zeebeDb.put(ZbColumnFamilies.DEFAULT, longKey, longValue));
-
-    // then
-
   }
 
   @Test
@@ -64,8 +49,8 @@ public class ZeebeDbTest {
     final ZbLong longValue = new ZbLong();
     longValue.wrapLong(1);
 
-    final RocksDbColumnFamily<ZbLong, ZbLong> columnFamily =
-        new RocksDbColumnFamily<>((ZbRocksDb) zeebeDb, ZbColumnFamilies.DEFAULT, new ZbLong());
+    final ColumnFamily<ZbLong, ZbLong> columnFamily =
+        zeebeDb.createColumnFamily(ColumnFamilies.DEFAULT, longKey, longValue);
 
     // when
     columnFamily.put(longKey, longValue);

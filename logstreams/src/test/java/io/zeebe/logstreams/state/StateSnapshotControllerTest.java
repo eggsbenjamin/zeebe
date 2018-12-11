@@ -18,6 +18,7 @@ package io.zeebe.logstreams.state;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.util.RocksDBWrapper;
 import io.zeebe.test.util.AutoCloseableRule;
 import java.io.File;
@@ -47,7 +48,7 @@ public class StateSnapshotControllerTest {
     controller = new StateController();
     autoCloseableRule.manage(controller);
 
-    snapshotController = new StateSnapshotController(controller, storage);
+    snapshotController = new StateSnapshotController(ZeebeRocksDbFactory.newFactory(), storage);
   }
 
   @Test

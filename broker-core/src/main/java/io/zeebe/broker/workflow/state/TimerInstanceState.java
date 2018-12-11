@@ -17,12 +17,12 @@
  */
 package io.zeebe.broker.workflow.state;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.db.ColumnFamily;
 import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbCompositeKey;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbNil;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import java.util.function.Consumer;
 
 public class TimerInstanceState {

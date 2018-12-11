@@ -17,6 +17,7 @@
  */
 package io.zeebe.broker.workflow.state;
 
+import io.zeebe.broker.logstreams.state.ZbColumnFamilies;
 import io.zeebe.broker.workflow.model.element.ExecutableWorkflow;
 import io.zeebe.broker.workflow.model.transformation.BpmnTransformer;
 import io.zeebe.db.ColumnFamily;
@@ -24,7 +25,6 @@ import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.ZbCompositeKey;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.ZbString;
-import io.zeebe.db.impl.rocksdb.ZbColumnFamilies;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.protocol.impl.record.value.deployment.DeploymentRecord;

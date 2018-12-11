@@ -30,7 +30,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksObject;
 import org.rocksdb.WriteOptions;
 
-public class ZbRocksDb<ColumnFamilyNames extends Enum> extends RocksDB
+public class ZbRocksDb<ColumnFamilyNames extends Enum<ColumnFamilyNames>> extends RocksDB
     implements ZeebeDb<ColumnFamilyNames> {
 
   private static final Field NATIVE_HANDLE_FIELD;
@@ -50,14 +50,15 @@ public class ZbRocksDb<ColumnFamilyNames extends Enum> extends RocksDB
   private final Class<ColumnFamilyNames> columnFamilyNamesClass;
   private ZbRocksBatch batch;
 
-  public static <ColumnFamilyNames extends Enum> ZbRocksDb<ColumnFamilyNames> openZbDb(
-      final DBOptions options,
-      final String path,
-      final List<ColumnFamilyDescriptor> columnFamilyDescriptors,
-      final List<AutoCloseable> closables,
-      Class<ColumnFamilyNames> columnFamilyTypeClass)
-      throws RocksDBException {
-    final EnumMap<ZbColumnFamilies, Long> columnFamilyMap = new EnumMap<>(ZbColumnFamilies.class);
+  public static <ColumnFamilyNames extends Enum<ColumnFamilyNames>>
+      ZbRocksDb<ColumnFamilyNames> openZbDb(
+          final DBOptions options,
+          final String path,
+          final List<ColumnFamilyDescriptor> columnFamilyDescriptors,
+          final List<AutoCloseable> closables,
+          Class<ColumnFamilyNames> columnFamilyTypeClass)
+          throws RocksDBException {
+    final EnumMap<ColumnFamilyNames, Long> columnFamilyMap = new EnumMap<>(columnFamilyTypeClass);
 
     final byte[][] cfNames = new byte[columnFamilyDescriptors.size()][];
     final long[] cfOptionHandles = new long[columnFamilyDescriptors.size()];
@@ -69,12 +70,14 @@ public class ZbRocksDb<ColumnFamilyNames extends Enum> extends RocksDB
 
     final long[] handles = open(getNativeHandle(options), path, cfNames, cfOptionHandles);
 
+    final ColumnFamilyNames[] enumConstants = columnFamilyTypeClass.getEnumConstants();
     for (int i = 1; i < handles.length; i++) {
-      columnFamilyMap.put(ZbColumnFamilies.values()[i - 1], handles[i]);
+      columnFamilyMap.put(enumConstants[i - 1], handles[i]);
     }
 
     final ZbRocksDb<ColumnFamilyNames> db =
-        new ZbRocksDb<>(handles[0], columnFamilyMap, closables, columnFamilyTypeClass);
+        new ZbRocksDb<ColumnFamilyNames>(
+            handles[0], columnFamilyMap, closables, columnFamilyTypeClass);
     db.storeOptionsInstance(options);
 
     return db;
@@ -84,11 +87,11 @@ public class ZbRocksDb<ColumnFamilyNames extends Enum> extends RocksDB
   private final ExpandableArrayBuffer keyBuffer = new ExpandableArrayBuffer();
   private final ExpandableArrayBuffer valueBuffer = new ExpandableArrayBuffer();
 
-  private final EnumMap<ZbColumnFamilies, Long> columnFamilyMap;
+  private final EnumMap<ColumnFamilyNames, Long> columnFamilyMap;
 
   protected ZbRocksDb(
       long l,
-      EnumMap<ZbColumnFamilies, Long> columnFamilyMap,
+      EnumMap<ColumnFamilyNames, Long> columnFamilyMap,
       List<AutoCloseable> closables,
       Class<ColumnFamilyNames> columnFamilyNamesClass) {
     super(l);

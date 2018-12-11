@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.db.impl.rocksdb;
+package io.zeebe.broker.logstreams.state;
 
 public enum ZbColumnFamilies {
   DEFAULT,
