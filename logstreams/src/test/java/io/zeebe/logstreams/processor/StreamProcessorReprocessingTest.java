@@ -26,11 +26,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.zeebe.db.impl.DefaultColumnFamily;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.LogStreams;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
 import io.zeebe.logstreams.log.LoggedEvent;
-import io.zeebe.logstreams.state.StateController;
 import io.zeebe.logstreams.state.StateSnapshotController;
 import io.zeebe.logstreams.state.StateStorage;
 import io.zeebe.logstreams.util.LogStreamRule;
@@ -64,7 +65,8 @@ public class StreamProcessorReprocessingTest {
             final String logDirectory = logStreamBuilder.getLogDirectory();
             final StateStorage stateStorage = new StateStorage(logDirectory);
             stateSnapshotController =
-                new StateSnapshotController(new StateController(), stateStorage);
+                new StateSnapshotController(
+                    ZeebeRocksDbFactory.newFactory(DefaultColumnFamily.class), stateStorage);
           });
   private final LogStreamWriterRule writer = new LogStreamWriterRule(logStreamRule);
 

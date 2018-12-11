@@ -31,6 +31,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.zeebe.db.impl.DefaultColumnFamily;
+import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import io.zeebe.logstreams.LogStreams;
 import io.zeebe.logstreams.impl.service.StreamProcessorService;
 import io.zeebe.logstreams.log.LogStreamRecordWriter;
@@ -597,7 +599,10 @@ public class StreamProcessorControllerTest {
   private void installStreamProcessorService() throws IOException {
     stateController = spy(new StateController());
     streamProcessor.setStateController(stateController);
-    snapshotController = spy(new StateSnapshotController(stateController, createStateStorage()));
+    snapshotController =
+        spy(
+            new StateSnapshotController(
+                ZeebeRocksDbFactory.newFactory(DefaultColumnFamily.class), createStateStorage()));
 
     streamProcessorService =
         LogStreams.createStreamProcessor(PROCESSOR_NAME, PROCESSOR_ID, streamProcessor)

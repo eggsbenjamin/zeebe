@@ -15,6 +15,7 @@
  */
 package io.zeebe.db;
 
+import io.zeebe.db.impl.DefaultColumnFamily;
 import io.zeebe.db.impl.ZbLong;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import java.io.File;
@@ -27,13 +28,10 @@ public class ZeebeDbTest {
 
   public ZeebeDb zeebeDb;
 
-  private enum ColumnFamilies {
-    DEFAULT
-  }
-
   @Before
   public void setUp() {
-    zeebeDb = ZeebeRocksDbFactory.newFactory(ColumnFamilies.class).createDb(new File("/tmp/data"));
+    zeebeDb =
+        ZeebeRocksDbFactory.newFactory(DefaultColumnFamily.class).createDb(new File("/tmp/data"));
   }
 
   @After
@@ -50,7 +48,7 @@ public class ZeebeDbTest {
     longValue.wrapLong(1);
 
     final ColumnFamily<ZbLong, ZbLong> columnFamily =
-        zeebeDb.createColumnFamily(ColumnFamilies.DEFAULT, longKey, longValue);
+        zeebeDb.createColumnFamily(DefaultColumnFamily.DEFAULT, longKey, longValue);
 
     // when
     columnFamily.put(longKey, longValue);
