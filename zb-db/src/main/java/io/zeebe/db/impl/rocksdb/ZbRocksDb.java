@@ -30,7 +30,8 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksObject;
 import org.rocksdb.WriteOptions;
 
-public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
+public class ZbRocksDb<ColumnFamilyNames extends Enum> extends RocksDB
+    implements ZeebeDb<ColumnFamilyNames> {
 
   private static final Field NATIVE_HANDLE_FIELD;
 
@@ -46,13 +47,15 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
   }
 
   private final List<AutoCloseable> closables;
+  private final Class<ColumnFamilyNames> columnFamilyNamesClass;
   private ZbRocksBatch batch;
 
-  public static ZbRocksDb openZbDb(
+  public static <ColumnFamilyNames extends Enum> ZbRocksDb<ColumnFamilyNames> openZbDb(
       final DBOptions options,
       final String path,
       final List<ColumnFamilyDescriptor> columnFamilyDescriptors,
-      final List<AutoCloseable> closables)
+      final List<AutoCloseable> closables,
+      Class<ColumnFamilyNames> columnFamilyTypeClass)
       throws RocksDBException {
     final EnumMap<ZbColumnFamilies, Long> columnFamilyMap = new EnumMap<>(ZbColumnFamilies.class);
 
@@ -70,7 +73,8 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
       columnFamilyMap.put(ZbColumnFamilies.values()[i - 1], handles[i]);
     }
 
-    final ZbRocksDb db = new ZbRocksDb(handles[0], columnFamilyMap, closables);
+    final ZbRocksDb<ColumnFamilyNames> db =
+        new ZbRocksDb<>(handles[0], columnFamilyMap, closables, columnFamilyTypeClass);
     db.storeOptionsInstance(options);
 
     return db;
@@ -83,23 +87,21 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
   private final EnumMap<ZbColumnFamilies, Long> columnFamilyMap;
 
   protected ZbRocksDb(
-      long l, EnumMap<ZbColumnFamilies, Long> columnFamilyMap, List<AutoCloseable> closables) {
+      long l,
+      EnumMap<ZbColumnFamilies, Long> columnFamilyMap,
+      List<AutoCloseable> closables,
+      Class<ColumnFamilyNames> columnFamilyNamesClass) {
     super(l);
     this.columnFamilyMap = columnFamilyMap;
     this.closables = closables;
+    this.columnFamilyNamesClass = columnFamilyNamesClass;
   }
 
   @Override
   public <KeyType extends ZbKey, ValueType extends ZbValue>
       ColumnFamily<KeyType, ValueType> createColumnFamily(
-          ZbColumnFamilies columnFamily, KeyType keyInstance, ValueType valueInstance) {
+          ColumnFamilyNames columnFamily, KeyType keyInstance, ValueType valueInstance) {
     return new RocksDbColumnFamily<>(this, columnFamily, valueInstance);
-  }
-
-  @Override
-  public void put(ZbColumnFamilies columnFamily, ZbKey key, ZbValue value) {
-    final long columnFamilyHandle = columnFamilyMap.get(columnFamily);
-    put(columnFamilyHandle, key, value);
   }
 
   protected void put(long columnFamilyHandle, ZbKey key, ZbValue value) {
@@ -154,7 +156,7 @@ public class ZbRocksDb extends RocksDB implements ZeebeDb<ZbColumnFamilies> {
     }
   }
 
-  public long getColumnFamilyHandle(ZbColumnFamilies columnFamily) {
+  public long getColumnFamilyHandle(ColumnFamilyNames columnFamily) {
     return columnFamilyMap.get(columnFamily);
   }
 

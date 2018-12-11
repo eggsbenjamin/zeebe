@@ -40,23 +40,29 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.TableFormatConfig;
 
-public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
+public final class ZeebeRocksDbFactory<ColumnFamilyType extends Enum>
+    implements ZeebeDbFactory<ColumnFamilyType> {
 
   static {
     RocksDB.loadLibrary();
   }
 
-  private ZeebeRocksDbFactory() {}
+  private final Class<ColumnFamilyType> columnFamilyTypeClass;
 
-  public static ZeebeRocksDbFactory newFactory() {
-    return new ZeebeRocksDbFactory();
+  private ZeebeRocksDbFactory(Class<ColumnFamilyType> columnFamilyTypeClass) {
+    this.columnFamilyTypeClass = columnFamilyTypeClass;
+  }
+
+  public static <ColumnFamilyType extends Enum> ZeebeRocksDbFactory<ColumnFamilyType> newFactory(
+      Class<ColumnFamilyType> columnFamilyTypeClass) {
+    return new ZeebeRocksDbFactory(columnFamilyTypeClass);
   }
 
   @Override
-  public ZbRocksDb createDb() {
+  public ZbRocksDb<ColumnFamilyType> createDb(File pathName) {
     return open(
-        new File("/tmp/test-db2/"),
-        Arrays.stream(ZbColumnFamilies.values())
+        pathName,
+        Arrays.stream(columnFamilyTypeClass.getEnumConstants())
             .map(c -> c.name().toLowerCase().getBytes())
             .collect(Collectors.toList()));
   }
@@ -80,7 +86,11 @@ public final class ZeebeRocksDbFactory implements ZeebeDbFactory {
 
       db =
           ZbRocksDb.openZbDb(
-              dbOptions, dbDirectory.getAbsolutePath(), columnFamilyDescriptors, closeables);
+              dbOptions,
+              dbDirectory.getAbsolutePath(),
+              columnFamilyDescriptors,
+              closeables,
+              columnFamilyTypeClass);
     } catch (final RocksDBException ex) {
       if (db != null) {
         try {

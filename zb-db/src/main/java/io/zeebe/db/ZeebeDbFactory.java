@@ -15,8 +15,23 @@
  */
 package io.zeebe.db;
 
-/** */
-public interface ZeebeDbFactory {
+import java.io.File;
 
-  ZeebeDb createDb();
+/** */
+
+/**
+ * Represents the zeebe database factory. The {@link ColumnFamilyNames} has to be an enum and
+ * specifies the different column families for the zeebe database.
+ *
+ * @param <ColumnFamilyNames> the names of the column families
+ */
+public interface ZeebeDbFactory<ColumnFamilyNames extends Enum> {
+
+  /**
+   * Creates a zeebe database in the given directory.
+   *
+   * @param pathName the path where the database should be created
+   * @return the created zeebe database
+   */
+  ZeebeDb<ColumnFamilyNames> createDb(File pathName);
 }

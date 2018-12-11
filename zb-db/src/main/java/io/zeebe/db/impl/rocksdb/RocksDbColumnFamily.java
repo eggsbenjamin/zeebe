@@ -23,15 +23,18 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 /** */
-public class RocksDbColumnFamily<KeyType extends ZbKey, ValueType extends ZbValue>
+public class RocksDbColumnFamily<
+        ColumnFamilyNames extends Enum, KeyType extends ZbKey, ValueType extends ZbValue>
     implements ColumnFamily<KeyType, ValueType> {
 
-  private final ZbRocksDb zbRocksDb;
+  private final ZbRocksDb<?> zbRocksDb;
   private final ValueType valueInstance;
   private final long handle;
 
   public RocksDbColumnFamily(
-      ZbRocksDb zbRocksDb, ZbColumnFamilies columnFamily, ValueType valueInstance) {
+      ZbRocksDb<ColumnFamilyNames> zbRocksDb,
+      ColumnFamilyNames columnFamily,
+      ValueType valueInstance) {
     this.zbRocksDb = zbRocksDb;
     handle = zbRocksDb.getColumnFamilyHandle(columnFamily);
     this.valueInstance = valueInstance;
