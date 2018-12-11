@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.workflow.deployment.distribute.processor;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 import static org.agrona.BitUtil.SIZE_OF_LONG;
 
@@ -57,10 +57,10 @@ public class PendingDeploymentDistribution implements ZbValue {
 
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
-    this.sourcePosition = buffer.getLong(offset, STATE_BYTE_ORDER);
+    this.sourcePosition = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    final int deploymentSize = buffer.getInt(offset, STATE_BYTE_ORDER);
+    final int deploymentSize = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
     deployment.wrap(buffer, offset, deploymentSize);
@@ -76,11 +76,11 @@ public class PendingDeploymentDistribution implements ZbValue {
   @Override
   public void write(MutableDirectBuffer buffer, int offset) {
     final int startOffset = offset;
-    buffer.putLong(offset, sourcePosition, STATE_BYTE_ORDER);
+    buffer.putLong(offset, sourcePosition, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     final int deploymentSize = deployment.capacity();
-    buffer.putInt(offset, deploymentSize, STATE_BYTE_ORDER);
+    buffer.putInt(offset, deploymentSize, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
     buffer.putBytes(offset, deployment, 0, deploymentSize);

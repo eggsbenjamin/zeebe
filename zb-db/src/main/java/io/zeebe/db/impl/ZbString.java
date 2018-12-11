@@ -15,6 +15,8 @@
  */
 package io.zeebe.db.impl;
 
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
+
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
 import io.zeebe.util.EnsureUtil;
@@ -29,10 +31,6 @@ public class ZbString implements ZbKey, ZbValue {
     this.bytes = string.getBytes();
   }
 
-  public void wrapBytes(byte[] bytes) {
-    this.bytes = bytes;
-  }
-
   public void wrapBuffer(DirectBuffer buffer) {
     EnsureUtil.ensureArrayBacked(buffer);
     bytes = buffer.byteArray();
@@ -40,17 +38,25 @@ public class ZbString implements ZbKey, ZbValue {
 
   @Override
   public void wrap(DirectBuffer directBuffer, int offset, int length) {
-    bytes = new byte[length];
+    final int stringLen = directBuffer.getInt(offset, ZB_DB_BYTE_ORDER);
+    offset += Integer.BYTES;
+
+    bytes = new byte[stringLen];
     directBuffer.getBytes(offset, bytes);
   }
 
   @Override
   public int getLength() {
-    return bytes.length;
+    return Integer.BYTES // length of the string
+        + bytes.length;
   }
 
   @Override
   public void write(MutableDirectBuffer mutableDirectBuffer, int offset) {
+    final int length = bytes.length;
+    mutableDirectBuffer.putInt(offset, length, ZB_DB_BYTE_ORDER);
+    offset += Integer.BYTES;
+
     mutableDirectBuffer.putBytes(offset, bytes);
   }
 

@@ -15,7 +15,7 @@
  */
 package io.zeebe.logstreams.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.rocksdb.ZbRocksDb;
@@ -293,7 +293,7 @@ public class StateController implements AutoCloseable {
   }
 
   protected void setLong(final long key) {
-    dbLongBuffer.putLong(0, key, STATE_BYTE_ORDER);
+    dbLongBuffer.putLong(0, key, ZB_DB_BYTE_ORDER);
   }
 
   public void put(final long key, final byte[] valueBuffer) {

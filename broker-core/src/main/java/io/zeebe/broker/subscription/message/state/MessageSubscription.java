@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.subscription.message.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
@@ -92,13 +92,13 @@ public class MessageSubscription implements ZbValue {
 
   @Override
   public void wrap(final DirectBuffer buffer, int offset, final int length) {
-    this.workflowInstanceKey = buffer.getLong(offset, STATE_BYTE_ORDER);
+    this.workflowInstanceKey = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    this.elementInstanceKey = buffer.getLong(offset, STATE_BYTE_ORDER);
+    this.elementInstanceKey = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    this.commandSentTime = buffer.getLong(offset, STATE_BYTE_ORDER);
+    this.commandSentTime = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = readIntoBuffer(buffer, offset, messageName);
@@ -117,13 +117,13 @@ public class MessageSubscription implements ZbValue {
 
   @Override
   public void write(final MutableDirectBuffer buffer, int offset) {
-    buffer.putLong(offset, workflowInstanceKey, STATE_BYTE_ORDER);
+    buffer.putLong(offset, workflowInstanceKey, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    buffer.putLong(offset, elementInstanceKey, STATE_BYTE_ORDER);
+    buffer.putLong(offset, elementInstanceKey, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    buffer.putLong(offset, commandSentTime, STATE_BYTE_ORDER);
+    buffer.putLong(offset, commandSentTime, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = writeIntoBuffer(buffer, offset, messageName);

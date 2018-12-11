@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
@@ -124,16 +124,16 @@ public class ElementInstance implements ZbValue {
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
     final int startOffset = offset;
-    childCount = buffer.getInt(offset, STATE_BYTE_ORDER);
+    childCount = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
-    jobKey = buffer.getLong(offset, STATE_BYTE_ORDER);
+    jobKey = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    activeTokens = buffer.getInt(offset, STATE_BYTE_ORDER);
+    activeTokens = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
-    parentKey = buffer.getLong(offset, STATE_BYTE_ORDER);
+    parentKey = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = readIntoBuffer(buffer, offset, interruptingEventTrigger);
@@ -154,16 +154,16 @@ public class ElementInstance implements ZbValue {
   public void write(MutableDirectBuffer buffer, int offset) {
     final int startOffset = offset;
 
-    buffer.putInt(offset, childCount, STATE_BYTE_ORDER);
+    buffer.putInt(offset, childCount, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
-    buffer.putLong(offset, jobKey, STATE_BYTE_ORDER);
+    buffer.putLong(offset, jobKey, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    buffer.putInt(offset, activeTokens, STATE_BYTE_ORDER);
+    buffer.putInt(offset, activeTokens, ZB_DB_BYTE_ORDER);
     offset += Integer.BYTES;
 
-    buffer.putLong(offset, parentKey, STATE_BYTE_ORDER);
+    buffer.putLong(offset, parentKey, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = writeIntoBuffer(buffer, offset, interruptingEventTrigger);

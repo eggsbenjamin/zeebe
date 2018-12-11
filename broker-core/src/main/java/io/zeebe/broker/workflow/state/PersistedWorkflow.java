@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.bufferAsString;
 import static io.zeebe.util.buffer.BufferUtil.cloneBuffer;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
@@ -73,9 +73,9 @@ public class PersistedWorkflow implements ZbValue {
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
     int valueOffset = offset;
-    version = buffer.getInt(offset, STATE_BYTE_ORDER);
+    version = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
     valueOffset += Integer.BYTES;
-    key = buffer.getLong(valueOffset, STATE_BYTE_ORDER);
+    key = buffer.getLong(valueOffset, ZB_DB_BYTE_ORDER);
     valueOffset += Long.BYTES;
     valueOffset = readIntoBuffer(buffer, valueOffset, bpmnProcessId);
     valueOffset = readIntoBuffer(buffer, valueOffset, resourceName);
@@ -95,9 +95,9 @@ public class PersistedWorkflow implements ZbValue {
   @Override
   public void write(MutableDirectBuffer buffer, int offset) {
     int valueOffset = offset;
-    buffer.putInt(offset, version, STATE_BYTE_ORDER);
+    buffer.putInt(offset, version, ZB_DB_BYTE_ORDER);
     valueOffset += Integer.BYTES;
-    buffer.putLong(valueOffset, key, STATE_BYTE_ORDER);
+    buffer.putLong(valueOffset, key, ZB_DB_BYTE_ORDER);
     valueOffset += Long.BYTES;
     valueOffset = writeIntoBuffer(buffer, valueOffset, bpmnProcessId);
     valueOffset = writeIntoBuffer(buffer, valueOffset, resourceName);
@@ -119,7 +119,7 @@ public class PersistedWorkflow implements ZbValue {
       MutableDirectBuffer buffer, int offset, DirectBuffer bpmnProcessId, int version) {
     int keyOffset = offset;
     keyOffset = writeIntoBuffer(buffer, keyOffset, bpmnProcessId);
-    buffer.putInt(keyOffset, version, STATE_BYTE_ORDER);
+    buffer.putInt(keyOffset, version, ZB_DB_BYTE_ORDER);
     keyOffset += Integer.BYTES;
     return keyOffset;
   }

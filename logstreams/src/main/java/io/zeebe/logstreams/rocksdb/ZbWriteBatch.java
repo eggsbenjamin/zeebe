@@ -15,7 +15,7 @@
  */
 package io.zeebe.logstreams.rocksdb;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 
 import io.zeebe.util.EnsureUtil;
 import java.lang.reflect.InvocationTargetException;
@@ -109,6 +109,6 @@ public class ZbWriteBatch extends WriteBatch {
   }
 
   private void setKey(final long key) {
-    longKeyBuffer.putLong(0, key, STATE_BYTE_ORDER);
+    longKeyBuffer.putLong(0, key, ZB_DB_BYTE_ORDER);
   }
 }

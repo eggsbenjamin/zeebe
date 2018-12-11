@@ -15,6 +15,8 @@
  */
 package io.zeebe.db.impl;
 
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
+
 import io.zeebe.db.ZbKey;
 import io.zeebe.db.ZbValue;
 import org.agrona.DirectBuffer;
@@ -30,7 +32,7 @@ public class ZbLong implements ZbKey, ZbValue {
 
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
-    longValue = buffer.getLong(offset);
+    longValue = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
   }
 
   @Override
@@ -40,7 +42,7 @@ public class ZbLong implements ZbKey, ZbValue {
 
   @Override
   public void write(MutableDirectBuffer buffer, int offset) {
-    buffer.putLong(offset, longValue);
+    buffer.putLong(offset, longValue, ZB_DB_BYTE_ORDER);
   }
 
   public boolean isFilled() {

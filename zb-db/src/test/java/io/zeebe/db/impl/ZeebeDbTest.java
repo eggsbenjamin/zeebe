@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.zeebe.db;
+package io.zeebe.db.impl;
 
-import io.zeebe.db.impl.DefaultColumnFamily;
-import io.zeebe.db.impl.ZbLong;
+import io.zeebe.db.ColumnFamily;
+import io.zeebe.db.ZeebeDb;
 import io.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
 import java.io.File;
 import org.junit.After;

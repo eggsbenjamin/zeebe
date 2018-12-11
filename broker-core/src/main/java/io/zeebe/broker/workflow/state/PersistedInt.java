@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 
 import io.zeebe.util.buffer.BufferReader;
 import io.zeebe.util.buffer.BufferWriter;
@@ -34,7 +34,7 @@ public class PersistedInt implements BufferWriter, BufferReader {
 
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
-    value = buffer.getInt(offset, STATE_BYTE_ORDER);
+    value = buffer.getInt(offset, ZB_DB_BYTE_ORDER);
   }
 
   @Override
@@ -44,6 +44,6 @@ public class PersistedInt implements BufferWriter, BufferReader {
 
   @Override
   public void write(MutableDirectBuffer buffer, int offset) {
-    buffer.putInt(offset, value, STATE_BYTE_ORDER);
+    buffer.putInt(offset, value, ZB_DB_BYTE_ORDER);
   }
 }

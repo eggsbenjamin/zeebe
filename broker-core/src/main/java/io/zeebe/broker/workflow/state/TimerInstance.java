@@ -17,7 +17,7 @@
  */
 package io.zeebe.broker.workflow.state;
 
-import static io.zeebe.logstreams.rocksdb.ZeebeStateConstants.STATE_BYTE_ORDER;
+import static io.zeebe.db.impl.ZeebeDbConstants.ZB_DB_BYTE_ORDER;
 import static io.zeebe.util.buffer.BufferUtil.readIntoBuffer;
 import static io.zeebe.util.buffer.BufferUtil.writeIntoBuffer;
 
@@ -72,13 +72,13 @@ public class TimerInstance implements ZbValue {
 
   @Override
   public void write(MutableDirectBuffer buffer, int offset) {
-    buffer.putLong(offset, elementInstanceKey, STATE_BYTE_ORDER);
+    buffer.putLong(offset, elementInstanceKey, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    buffer.putLong(offset, dueDate, STATE_BYTE_ORDER);
+    buffer.putLong(offset, dueDate, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    buffer.putLong(offset, key, STATE_BYTE_ORDER);
+    buffer.putLong(offset, key, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = writeIntoBuffer(buffer, offset, handlerNodeId);
@@ -87,13 +87,13 @@ public class TimerInstance implements ZbValue {
 
   @Override
   public void wrap(DirectBuffer buffer, int offset, int length) {
-    elementInstanceKey = buffer.getLong(offset, STATE_BYTE_ORDER);
+    elementInstanceKey = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    dueDate = buffer.getLong(offset, STATE_BYTE_ORDER);
+    dueDate = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
-    key = buffer.getLong(offset, STATE_BYTE_ORDER);
+    key = buffer.getLong(offset, ZB_DB_BYTE_ORDER);
     offset += Long.BYTES;
 
     offset = readIntoBuffer(buffer, offset, handlerNodeId);
